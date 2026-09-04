@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
@@ -53,24 +54,24 @@ class MarketAnalysisResult(BaseModel):
 
 
 # In-page JavaScript injected to accurately analyze the central market-data region and DOM
-IN_PAGE_MARKET_EXTRACTOR_JS = """
+IN_PAGE_MARKET_EXTRACTOR_JS = r"""
 (customSelectors) => {
-    const cleanText = (t) => t ? t.replace(/\\s+/g, ' ').trim() : '';
+    const cleanText = (t) => t ? t.replace(/\s+/g, ' ').trim() : '';
     
-    // Parse numeric price: removes currency symbols (₹, $, €, £, INR), commas, and spaces
+    // Parse numeric price: removes currency symbols (₹, $, €, £, INR, USD), commas, and spaces
     const parsePrice = (raw) => {
         if (!raw) return null;
-        const cleaned = raw.replace(/[₹$€£INR\\s,]/gi, '');
-        const match = cleaned.match(/[-+]?\\d+(?:\\.\\d+)?/);
+        const cleaned = raw.replace(/[₹$€£INRUSD\s,]/gi, '');
+        const match = cleaned.match(/[-+]?\d+(?:\.\d+)?/);
         return match ? parseFloat(match[0]) : null;
     };
 
     // Parse percentage: extracts number following + or - or %
     const parsePercent = (raw) => {
         if (!raw) return 0.0;
-        const match = raw.match(/([+-]?\\d+(?:\\.\\d+)?)\\s*%/);
+        const match = raw.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
         if (match) return parseFloat(match[1]);
-        const simple = raw.replace(/[₹$€£INR\\s,%]/gi, '');
+        const simple = raw.replace(/[₹$€£INRUSD\s,%()]/gi, '');
         const num = parseFloat(simple);
         return isNaN(num) ? 0.0 : num;
     };
@@ -114,7 +115,6 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
 
             // Resolve Symbol
             let sym = '';
-            // Check TradingView quotes container or h1 or URL
             if (symbolHeaderTicker) {
                 const headerLines = cleanText(symbolHeaderTicker.innerText).split(' ');
                 if (headerLines.length > 0 && /^[A-Z0-9._-]+$/i.test(headerLines[0])) {
@@ -122,8 +122,8 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
                 }
             }
             if (!sym) {
-                const urlMatch = window.location.pathname.match(/\\/symbols\\/([A-Z0-9:_-]+)/i) ||
-                                 window.location.pathname.match(/\\/quote\\/([A-Z0-9:_-]+)/i);
+                const urlMatch = window.location.pathname.match(/\/symbols\/([A-Z0-9:_-]+)/i) ||
+                                 window.location.pathname.match(/\/quote\/([A-Z0-9:_-]+)/i);
                 if (urlMatch) {
                     sym = urlMatch[1].replace(/^(NSE|BSE):/i, '').toUpperCase();
                 }
@@ -135,35 +135,91 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
             // Resolve Company Name
             let name = h1 ? cleanText(h1.innerText) : sym;
 
+            // Find parent quote container (traverse up to find container holding price and changes)
+            let parentHero = lastPriceEl.parentElement;
+            for (let i = 0; i < 7; i++) {
+                if (!parentHero || parentHero === document.body) break;
+                if (parentHero.innerText && (parentHero.innerText.includes('%') || parentHero.querySelector('[class*="change"], [class*="percent"]'))) {
+                    break;
+                }
+                parentHero = parentHero.parentElement;
+            }
+            if (!parentHero) {
+                parentHero = lastPriceEl.closest('[class*="quotesContainer"], [class*="quote-header"], [class*="hero"]') || document.body;
+            }
+
             // Resolve Price Change and Percent
             let changeVal = 0.0;
             let percentVal = 0.0;
             
-            // Search sibling/adjacent elements for change and percentage
-            const parentHero = lastPriceEl.closest('[class*="quotesContainer"], [class*="hero"], [class*="header"], div');
-            const changeEls = parentHero ? Array.from(parentHero.querySelectorAll('[class*="change"], [class*="percentage"], span, div')) : [];
-            
-            for (const el of changeEls) {
-                const text = cleanText(el.innerText);
-                if (text.includes('%') && !percentVal) {
-                    percentVal = parsePercent(text);
-                } else if (/^[+-]\\d+(?:\\.\\d+)?$/.test(text) && !changeVal) {
-                    changeVal = parseFloat(text);
+            // Priority 1: Direct specific change selectors
+            const directChangeEl = document.querySelector(
+                customSelectors?.change || 
+                '.js-symbol-change-pt, [class*="change-pt"], [class*="js-symbol-change-direction"], [class*="changeContainer"] [class*="change-"], [class*="priceChange"]'
+            );
+            const directPercentEl = document.querySelector(
+                customSelectors?.change_percent || 
+                '.js-symbol-change-pt, [class*="js-symbol-change-direction"], [class*="percentage-"], [class*="percentChange"]'
+            );
+
+            if (directChangeEl) {
+                const txt = cleanText(directChangeEl.innerText);
+                const p = parsePrice(txt);
+                if (p !== null) {
+                    const isNeg = txt.includes('-') || directChangeEl.className.includes('down') || directChangeEl.className.includes('neg');
+                    changeVal = isNeg && p > 0 ? -p : p;
                 }
             }
 
-            // Fallback: search entire hero text
-            if (parentHero && (!changeVal || !percentVal)) {
-                const heroText = parentHero.innerText || '';
-                const pctMatch = heroText.match(/([+-]?\\d+(?:\\.\\d+)?)\\s*%/);
-                if (pctMatch) percentVal = parseFloat(pctMatch[1]);
-                const chgMatch = heroText.match(/([+-]\\d+(?:\\.\\d+)?)\\s*(?:INR|USD|EUR|[A-Z]{3})?\\s*[+-]?\\d+/);
-                if (chgMatch) changeVal = parseFloat(chgMatch[1]);
+            if (directPercentEl) {
+                const txt = cleanText(directPercentEl.innerText);
+                const pct = parsePercent(txt);
+                if (pct !== 0.0) {
+                    const isNeg = txt.includes('-') || directPercentEl.className.includes('down') || directPercentEl.className.includes('neg');
+                    percentVal = isNeg && pct > 0 ? -pct : pct;
+                }
             }
 
-            // Infer change from percent if change amount not explicitly found
+            // Priority 2: Search within parent hero elements
+            if (!changeVal || !percentVal) {
+                const changeEls = Array.from(parentHero.querySelectorAll('[class*="change"], [class*="percentage"], [class*="diff"], span, div'));
+                for (const el of changeEls) {
+                    const text = cleanText(el.innerText);
+                    if (text.includes('%') && !percentVal) {
+                        percentVal = parsePercent(text);
+                        if (text.includes('-') || el.className.includes('down') || el.className.includes('neg')) {
+                            if (percentVal > 0) percentVal = -percentVal;
+                        }
+                    } else if (/^[+-]?\d+(?:\.\d+)?$/.test(text.replace(/[INR₹$€\s,]/gi, '')) && !changeVal) {
+                        const parsed = parsePrice(text);
+                        if (parsed !== null && parsed !== parsedPrice) {
+                            changeVal = text.includes('-') || el.className.includes('down') ? -Math.abs(parsed) : Math.abs(parsed);
+                        }
+                    }
+                }
+            }
+
+            // Priority 3: Fallback regex against entire hero container text
+            if (parentHero && (!changeVal || !percentVal)) {
+                const heroText = parentHero.innerText || '';
+                if (!percentVal) {
+                    const pctMatch = heroText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+                    if (pctMatch) percentVal = parseFloat(pctMatch[1]);
+                }
+                if (!changeVal) {
+                    const chgMatch = heroText.match(/([+-]\d+(?:\.\d+)?)\s*(?:INR|USD|EUR|[A-Z]{3})?/);
+                    if (chgMatch) changeVal = parseFloat(chgMatch[1]);
+                }
+            }
+
+            // Infer change from percent or vice versa if one is found
             if (!changeVal && percentVal) {
                 changeVal = parseFloat(((parsedPrice * percentVal) / 100).toFixed(2));
+            } else if (changeVal && !percentVal && parsedPrice > 0) {
+                const prev = parsedPrice - changeVal;
+                if (prev > 0) {
+                    percentVal = parseFloat(((changeVal / prev) * 100).toFixed(2));
+                }
             }
 
             results.stocks.push({
@@ -179,7 +235,6 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
     }
 
     // B. MULTI-STOCK WATCHLIST / MARKET SCREENER TABLE
-    // Look for central market rows (TradingView screener, Dhan watchlist table, custom broker table)
     const rowSelector = customSelectors?.row || 'tr[class*="row"], table tbody tr, [role="row"], [class*="watchlist-item"], [class*="screener-row"]';
     const rows = Array.from(document.querySelectorAll(rowSelector));
 
@@ -188,11 +243,9 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
         for (const row of rows) {
             if (!isVisible(row)) continue;
             
-            // Extract text from cells
             const cells = Array.from(row.querySelectorAll('td, [role="cell"], [class*="cell"], div')).map(c => cleanText(c.innerText));
             if (cells.length < 2) continue;
 
-            // Find cell with symbol/ticker
             let rowSymbol = '';
             let rowName = '';
             let rowPrice = null;
@@ -204,7 +257,6 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
                 rowSymbol = cleanText(symEl.innerText).split(' ')[0].toUpperCase();
             }
 
-            // Extract price from cells
             for (const text of cells) {
                 if (rowPrice === null) {
                     const p = parsePrice(text);
@@ -215,8 +267,11 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
                 }
                 if (text.includes('%') && rowPercent === 0.0) {
                     rowPercent = parsePercent(text);
-                } else if (/^[+-]\\d+(?:\\.\\d+)?$/.test(text) && rowChange === 0.0) {
-                    rowChange = parseFloat(text);
+                } else if (/^[+-]?\d+(?:\.\d+)?$/.test(text.replace(/[INR₹$€\s,]/gi, '')) && rowChange === 0.0) {
+                    const ch = parsePrice(text);
+                    if (ch !== null && ch !== rowPrice) {
+                        rowChange = text.includes('-') ? -Math.abs(ch) : Math.abs(ch);
+                    }
                 }
             }
 
@@ -236,7 +291,6 @@ IN_PAGE_MARKET_EXTRACTOR_JS = """
         if (tableStocks.length > 0) {
             results.central_region_found = true;
             results.screen_type = 'multi_stock_table';
-            // Merge or set stocks
             results.stocks = tableStocks;
         }
     }
@@ -467,10 +521,12 @@ class MarketAnalyzer:
 
     def should_dispatch_telegram_alert(self, result: MarketAnalysisResult) -> bool:
         """Determines if the current market analysis merits a Telegram notification."""
-        if not self.config.telegram_market_alerts or not result.stocks:
+        if not self.config.telegram_market_alerts:
+            return False
+        if not result.stocks and not result.top_gainers and not result.top_decliners:
             return False
 
-        now = asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else datetime.now().timestamp()
+        now = time.time()
         if (now - self._last_alert_time) < self.config.telegram_notification_cooldown:
             return False
 
