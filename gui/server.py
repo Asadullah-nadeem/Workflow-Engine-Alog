@@ -404,6 +404,7 @@ async def open_browser():
             await page.bring_to_front()
         except Exception:
             pass
+        chrome_manager._bring_to_windows_foreground()
         state_mgr.add_event("Chrome browser launched and visible.", level="SUCCESS")
         return {"status": "ok", "message": "Chrome browser opened successfully."}
     except Exception as exc:

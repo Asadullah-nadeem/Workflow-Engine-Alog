@@ -8,6 +8,7 @@ Synchronizes live status with the StateManager.
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -71,6 +72,7 @@ class ChromeManager:
 
                 state_mgr.set_chrome_state(ChromeState.CONNECTED)
                 logger.info("Chrome browser started and ready.")
+                self._bring_to_windows_foreground()
             except Exception as exc:
                 err_msg = str(exc)
                 logger.error(f"Failed to start Chrome: {err_msg}")
@@ -79,6 +81,31 @@ class ChromeManager:
                 raise
 
             return self._primary_page
+
+    def _bring_to_windows_foreground(self) -> None:
+        """Brings the Chrome browser window to the foreground on Windows."""
+        if os.name != "nt":
+            return
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+
+            def enum_proc(hwnd, lParam):
+                if user32.IsWindowVisible(hwnd):
+                    length = user32.GetWindowTextLengthW(hwnd)
+                    if length > 0:
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        user32.GetWindowTextW(hwnd, buff, length + 1)
+                        title = buff.value.lower()
+                        if any(k in title for k in ("chrome", "tradingview", "dhan", "google")):
+                            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                            user32.SetForegroundWindow(hwnd)
+                return True
+
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+            user32.EnumWindows(WNDENUMPROC(enum_proc), 0)
+        except Exception as e:
+            logger.debug(f"Window foreground notice: {e}")
 
     async def connect(self, cdp_url: Optional[str] = None) -> Page:
         """Connects to an existing Chrome instance via Chrome DevTools Protocol."""
@@ -204,6 +231,11 @@ class ChromeManager:
 
         try:
             await page.goto(url, wait_until=wait_until, timeout=timeout)
+            try:
+                await page.bring_to_front()
+            except Exception:
+                pass
+            self._bring_to_windows_foreground()
         except Exception as exc:
             logger.warning(f"Navigation to {url} encountered notice: {exc}")
 
