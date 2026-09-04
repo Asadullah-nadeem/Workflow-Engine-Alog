@@ -585,8 +585,11 @@
                 <div id="dot-telegram" class="badge-dot dot-gray"></div>
                 <span>Telegram: <b id="lbl-telegram-state">STANDBY</b></span>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openChromeBrowser()" style="padding: 6px 14px; font-size: 12px; border-radius: 20px;">
-                <i class="fa-brands fa-chrome"></i> Open Chrome
+            <button class="btn btn-secondary btn-sm" onclick="openChromeBrowser()" style="padding: 6px 14px; font-size: 12px; border-radius: 20px;">
+                <i class="fa-brands fa-chrome" style="color: var(--accent-cyan);"></i> Open Chrome
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-settings')" style="padding: 6px 14px; font-size: 12px; border-radius: 20px;">
+                <i class="fa-solid fa-gear"></i> System Settings
             </button>
         </div>
     </header>
@@ -673,6 +676,9 @@
                     <button class="btn btn-secondary btn-sm" onclick="stopAllSites()">
                         <i class="fa-solid fa-ban"></i> Stop All
                     </button>
+                    <button class="btn btn-secondary btn-sm" onclick="openModal('modal-settings')" title="Operational Telegram & System Settings">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </button>
                 </div>
             </div>
 
@@ -696,80 +702,31 @@
             </div>
         </div>
 
-        <!-- BOTTOM SPLIT: LOGS & TELEGRAM/SETTINGS -->
-        <div class="bottom-grid">
-
-            <!-- LIVE SYSTEM TERMINAL -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fa-solid fa-terminal" style="color: var(--accent-cyan);"></i>
-                        Live Operational Stream & Logs
-                    </div>
-                    <div class="btn-toolbar">
-                        <button class="btn btn-secondary btn-sm" onclick="clearTerminal()">
-                            <i class="fa-solid fa-broom"></i> Clear
-                        </button>
-                    </div>
+        <!-- LIVE OPERATIONAL STREAM & LOGS (FULL-WIDTH EXPANDED) -->
+        <div class="card" style="margin-top: 10px;">
+            <div class="card-header" style="padding: 14px 20px;">
+                <div class="card-title" style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-terminal" style="color: var(--accent-cyan);"></i>
+                    <span>Live Operational Stream & Logs</span>
+                    <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 210, 255, 0.12); color: var(--accent-cyan); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(0, 210, 255, 0.25); font-weight: 600;">
+                        <i class="fa-solid fa-circle" style="font-size: 6px; color: var(--accent-cyan); animation: pulse 1.5s infinite;"></i> REAL-TIME ACTIVE
+                    </span>
                 </div>
-                <div class="terminal-box" id="terminal-stream">
-                    <!-- Stream entries appended here -->
-                </div>
-            </div>
-
-            <!-- TELEGRAM & GLOBAL CONFIG -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fa-brands fa-telegram" style="color: #2F80ED;"></i>
-                        Operational Telegram & System Settings
-                    </div>
-                    <button class="btn btn-primary btn-sm" onclick="testTelegram()">
-                        <i class="fa-solid fa-paper-plane"></i> Test Telegram
+                <div class="btn-toolbar">
+                    <button class="btn btn-primary btn-sm" onclick="openLogsModal()" title="Pop Show live operational stream into large window">
+                        <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Pop Show Logs
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearTerminal()">
+                        <i class="fa-solid fa-broom"></i> Clear
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportLogs()">
+                        <i class="fa-solid fa-file-arrow-down"></i> Export Logs
                     </button>
                 </div>
-                <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Telegram Bot Token</label>
-                            <input type="password" id="cfg-tg-token" class="form-input" placeholder="123456:ABC-DEF..." />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Telegram Chat ID</label>
-                            <input type="text" id="cfg-tg-chat" class="form-input" placeholder="-100... or user ID" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Primary Broker Name</label>
-                            <input type="text" id="cfg-broker-name" class="form-input" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Primary Broker URL</label>
-                            <input type="text" id="cfg-broker-url" class="form-input" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Chrome Profile Directory</label>
-                            <input type="text" id="cfg-chrome-profile" class="form-input" value="Default" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Execution Check Interval (s)</label>
-                            <input type="number" id="cfg-check-interval" class="form-input" value="5" min="1" />
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
-                        <button class="btn btn-primary" onclick="saveGlobalSettings()">
-                            <i class="fa-solid fa-floppy-disk"></i> Save System Settings
-                        </button>
-                    </div>
-                </div>
             </div>
-
+            <div class="terminal-box" id="terminal-stream" style="height: 380px;">
+                <!-- Stream entries appended here -->
+            </div>
         </div>
 
     </div>
