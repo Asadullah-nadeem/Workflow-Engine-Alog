@@ -523,17 +523,23 @@ class MarketAnalyzer:
         """Determines if the current market analysis merits a Telegram notification."""
         if not self.config.telegram_market_alerts:
             return False
-        if not result.stocks and not result.top_gainers and not result.top_decliners:
+        candidates = result.stocks or (result.top_gainers + result.top_decliners)
+        if not candidates:
             return False
 
         now = time.time()
         if (now - self._last_alert_time) < self.config.telegram_notification_cooldown:
             return False
 
-        # Check if any gainer or decliner breaches min_change_percent
+        # If threshold is <= 0.0, dispatch any detected stocks on the screen automatically
+        if self.config.telegram_min_change_percent <= 0.0:
+            self._last_alert_time = now
+            return True
+
+        # Check if any detected stock breaches the configured change percentage threshold
         has_significant_mover = any(
             abs(s.change_percent) >= self.config.telegram_min_change_percent
-            for s in (result.top_gainers + result.top_decliners)
+            for s in candidates
         )
         if has_significant_mover:
             self._last_alert_time = now

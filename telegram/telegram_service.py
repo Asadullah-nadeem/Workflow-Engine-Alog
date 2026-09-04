@@ -148,6 +148,16 @@ class TelegramService:
                             state_mgr.set_telegram_state(TelegramState.CONNECTED)
                             return True
 
+                        if response.status_code == 400 and payload.get("parse_mode"):
+                            # Auto-fallback to plain text if Markdown parsing failed (e.g. unescaped symbols)
+                            logger.info("Retrying Telegram message without parse_mode due to entity formatting error...")
+                            plain_payload = dict(payload)
+                            plain_payload.pop("parse_mode", None)
+                            fallback_resp = await client.post(self.send_url, json=plain_payload)
+                            if fallback_resp.status_code == 200:
+                                state_mgr.set_telegram_state(TelegramState.CONNECTED)
+                                return True
+
                         if response.status_code == 429:
                             # Telegram rate limit backoff
                             data = response.json()
@@ -258,35 +268,54 @@ class TelegramService:
         if not self.enabled or not self.bot_token or not self.chat_id:
             return False
 
-        scan_time = getattr(result, "timestamp", datetime.now().strftime("%H:%M:%S"))
+        scan_time = getattr(result, "timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         stocks_count = getattr(result, "stocks_detected", 0)
         gainers = getattr(result, "top_gainers", [])
         decliners = getattr(result, "top_decliners", [])
+        all_stocks = getattr(result, "stocks", [])
         scanner_state = getattr(result, "scanner_state", "RUNNING")
+        target_title = getattr(result, "target_page_title", "")
+        if not target_title and getattr(result, "target_page_url", ""):
+            target_title = getattr(result, "target_page_url", "")
 
         lines = [
-            "📊 *MARKET UPDATE*",
+            "📊 *STOCK MARKET SCREEN UPDATE*",
             "",
             f"*Scan Time:* `{scan_time}`",
             f"*Stocks Detected:* {stocks_count}",
         ]
 
+        if target_title:
+            clean_title = target_title.replace("*", "").replace("_", " ").replace("`", "")[:65]
+            lines.append(f"*Source:* {clean_title}")
+
         if gainers:
             lines.append("\n🟢 *Top Gainers:*")
-            for g in gainers[:5]:
+            for g in gainers[:6]:
                 sign = "+" if g.change >= 0 else ""
-                lines.append(f"• *{g.symbol}:* ₹{g.price:,.2f} ({sign}{g.change_percent:.2f}% UP)")
+                clean_sym = g.symbol.replace("_", "-")
+                lines.append(f"• *{clean_sym}:* ₹{g.price:,.2f} ({sign}{g.change_percent:.2f}% UP)")
 
         if decliners:
             lines.append("\n🔴 *Top Decliners:*")
-            for d in decliners[:5]:
-                lines.append(f"• *{d.symbol}:* ₹{d.price:,.2f} ({d.change_percent:.2f}% DOWN)")
+            for d in decliners[:6]:
+                sign = "" if d.change <= 0 else "+"
+                clean_sym = d.symbol.replace("_", "-")
+                lines.append(f"• *{clean_sym}:* ₹{d.price:,.2f} ({d.change_percent:.2f}% DOWN)")
+
+        if not gainers and not decliners and all_stocks:
+            lines.append("\n📋 *Detected Stock Quotes:*")
+            for s in all_stocks[:6]:
+                sign = "+" if s.change >= 0 else ""
+                clean_sym = s.symbol.replace("_", "-")
+                lines.append(f"• *{clean_sym}:* ₹{s.price:,.2f} ({sign}{s.change_percent:.2f}% {s.direction})")
 
         lines.extend([
             "",
-            f"*Scanner:* `{scanner_state}`"
+            f"*Scanner Status:* `{scanner_state}`"
         ])
 
+        logger.info(f"Dispatching market alert to Telegram chat {self.chat_id} ({stocks_count} stocks)...")
         return await self.send_message("\n".join(lines))
 
     async def send_shutdown(self) -> bool:

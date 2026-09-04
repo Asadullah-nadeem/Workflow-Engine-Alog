@@ -376,9 +376,14 @@ class WorkflowEngine:
         # Dispatch Telegram market alert if cooldown and change thresholds are met
         if market_analyzer.should_dispatch_telegram_alert(analysis):
             try:
-                await telegram_service.send_market_alert(analysis)
+                sent = await telegram_service.send_market_alert(analysis)
+                if sent:
+                    logger.info(f"[{site_name}] Dispatched Telegram market alert for {analysis.stocks_detected} stocks.")
+                    state_mgr.add_event(f"Telegram market alert sent for {analysis.stocks_detected} stocks.", level="SUCCESS")
+                else:
+                    logger.warning(f"[{site_name}] Telegram market alert delivery returned False.")
             except Exception as tg_err:
-                logger.debug(f"Telegram market alert notice: {tg_err}")
+                logger.error(f"[{site_name}] Telegram market alert failed: {tg_err}")
 
         page_title = analysis.target_page_title or (await page.title())
         current_url = analysis.target_page_url or page.url

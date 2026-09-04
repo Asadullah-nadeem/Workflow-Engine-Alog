@@ -175,15 +175,15 @@ class AppConfig(BaseSettings):
         alias="TELEGRAM_MARKET_ALERTS",
     )
     telegram_min_change_percent: float = Field(
-        default=3.0,
+        default=0.0,
         ge=0.0,
         description="Minimum percentage threshold to dispatch a Telegram market alert",
         alias="TELEGRAM_MIN_CHANGE_PERCENT",
     )
     telegram_notification_cooldown: int = Field(
-        default=60,
+        default=30,
         ge=5,
-        description="Cooldown in seconds between market alert dispatches to avoid spam",
+        description="Cooldown period in seconds between Telegram market alerts",
         alias="TELEGRAM_NOTIFICATION_COOLDOWN",
     )
     market_region_selector: str = Field(

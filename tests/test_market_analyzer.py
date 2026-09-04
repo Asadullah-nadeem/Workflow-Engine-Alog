@@ -120,6 +120,8 @@ class TestMarketAnalyzer(unittest.TestCase):
         self.assertIn("tradingview.com", page.url)
 
     def test_telegram_alert_cooldown_and_threshold(self):
+        self.analyzer.config.telegram_min_change_percent = 3.0
+        self.analyzer.config.telegram_notification_cooldown = 60
         result_minor = MarketAnalysisResult(
             screen_detected=True,
             stocks_detected=2,

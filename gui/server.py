@@ -468,6 +468,11 @@ async def scan_market_now():
             f"Gainers: {len(analysis.top_gainers)}, Decliners: {len(analysis.top_decliners)}",
             level="SUCCESS"
         )
+        if config.telegram_market_alerts and telegram_service.enabled:
+            try:
+                await telegram_service.send_market_alert(analysis)
+            except Exception as tg_err:
+                logger.error(f"Manual scan Telegram alert failed: {tg_err}")
     else:
         state_mgr.add_event(
             f"Market scan notice: {analysis.reason or 'No stocks detected in market region.'}",
