@@ -137,6 +137,86 @@ class AppConfig(BaseSettings):
         description="Page navigation and element wait timeout in milliseconds",
         alias="PAGE_TIMEOUT_MS",
     )
+    # --------------------------------------------------------------------------
+    # Stock Market Screen Analysis Settings
+    # --------------------------------------------------------------------------
+    stock_scanner_enabled: bool = Field(
+        default=True,
+        description="Whether continuous stock market screen analysis is enabled",
+        alias="STOCK_SCANNER_ENABLED",
+    )
+    stock_scan_interval: int = Field(
+        default=5,
+        ge=1,
+        description="Scan interval in seconds for stock market screen updates",
+        alias="STOCK_SCAN_INTERVAL",
+    )
+    top_movers_limit: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum number of top gainers to track and display",
+        alias="TOP_MOVERS_LIMIT",
+    )
+    top_decliners_limit: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum number of top decliners to track and display",
+        alias="TOP_DECLINERS_LIMIT",
+    )
+    min_change_percent: float = Field(
+        default=0.5,
+        ge=0.0,
+        description="Minimum percentage change to highlight or alert",
+        alias="MIN_CHANGE_PERCENT",
+    )
+    telegram_market_alerts: bool = Field(
+        default=True,
+        description="Whether to send Telegram alerts for significant market movements",
+        alias="TELEGRAM_MARKET_ALERTS",
+    )
+    telegram_min_change_percent: float = Field(
+        default=3.0,
+        ge=0.0,
+        description="Minimum percentage threshold to dispatch a Telegram market alert",
+        alias="TELEGRAM_MIN_CHANGE_PERCENT",
+    )
+    telegram_notification_cooldown: int = Field(
+        default=60,
+        ge=5,
+        description="Cooldown in seconds between market alert dispatches to avoid spam",
+        alias="TELEGRAM_NOTIFICATION_COOLDOWN",
+    )
+    market_region_selector: str = Field(
+        default="",
+        description="Custom CSS selector for main central market region (optional override)",
+        alias="MARKET_REGION_SELECTOR",
+    )
+    stock_row_selector: str = Field(
+        default="",
+        description="Custom CSS selector for stock rows in a table/watchlist (optional override)",
+        alias="STOCK_ROW_SELECTOR",
+    )
+    symbol_selector: str = Field(
+        default="",
+        description="Custom CSS selector for symbol in row/header (optional override)",
+        alias="SYMBOL_SELECTOR",
+    )
+    price_selector: str = Field(
+        default="",
+        description="Custom CSS selector for price in row/header (optional override)",
+        alias="PRICE_SELECTOR",
+    )
+    change_selector: str = Field(
+        default="",
+        description="Custom CSS selector for price change in row/header (optional override)",
+        alias="CHANGE_SELECTOR",
+    )
+    change_percent_selector: str = Field(
+        default="",
+        description="Custom CSS selector for percentage change in row/header (optional override)",
+        alias="CHANGE_PERCENT_SELECTOR",
+    )
+
     event_retention_days: int = Field(
         default=30,
         ge=1,

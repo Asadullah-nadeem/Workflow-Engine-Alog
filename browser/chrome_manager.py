@@ -385,6 +385,91 @@ class ChromeManager:
                 pass
 
     # -------------------------------------------------------------------------
+    # Chromium Remote Debugging & DOM Inspection API
+    # -------------------------------------------------------------------------
+
+    async def reconnect(self, headless: Optional[bool] = None) -> Page:
+        """Controlled reconnect handling for Chromium."""
+        logger.info("Executing controlled Chromium reconnect...")
+        return await self.restart(headless=headless)
+
+    async def get_pages(self) -> List[Page]:
+        """Returns all open pages/tabs in the current browser context."""
+        if not self._context:
+            return []
+        return [p for p in self._context.pages if not p.is_closed()]
+
+    async def get_active_page(self) -> Page:
+        """Locates the currently active, primary, or last focused page."""
+        pages = await self.get_pages()
+        if not pages:
+            return await self.get_page()
+        if self._primary_page and not self._primary_page.is_closed():
+            return self._primary_page
+        return pages[-1]
+
+    async def inspect_dom(self, selector: Optional[str] = None, page: Optional[Page] = None) -> Dict[str, Any]:
+        """Inspects DOM elements, attributes, visibility, and bounding rectangles."""
+        target_page = page or await self.get_active_page()
+        script = """
+        (sel) => {
+            const el = sel ? document.querySelector(sel) : document.body;
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            return {
+                tagName: el.tagName.toLowerCase(),
+                id: el.id || '',
+                className: String(el.className || ''),
+                innerText: (el.innerText || '').slice(0, 500),
+                rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+                childCount: el.children ? el.children.length : 0,
+                attributes: Array.from(el.attributes || []).map(a => ({ name: a.name, value: a.value }))
+            };
+        }
+        """
+        try:
+            return await target_page.evaluate(script, selector) or {}
+        except Exception as exc:
+            logger.debug(f"DOM inspection notice: {exc}")
+            return {"error": str(exc)}
+
+    async def execute_javascript(self, script: str, args: Optional[Any] = None, page: Optional[Page] = None) -> Any:
+        """Executes JavaScript within the browser page context."""
+        target_page = page or await self.get_active_page()
+        return await target_page.evaluate(script, args)
+
+    async def get_page_state(self, page: Optional[Page] = None) -> Dict[str, Any]:
+        """Retrieves URL, title, readyState, viewport, and load state."""
+        target_page = page or await self.get_active_page()
+        try:
+            url = target_page.url
+            title = await target_page.title()
+            ready_state = await target_page.evaluate("() => document.readyState")
+            return {
+                "url": url,
+                "title": title,
+                "readyState": ready_state,
+                "is_closed": target_page.is_closed(),
+            }
+        except Exception as exc:
+            return {"error": str(exc), "is_closed": True}
+
+    async def capture_screenshot(
+        self,
+        path: Optional[str] = None,
+        page: Optional[Page] = None,
+        clip: Optional[Dict[str, float]] = None
+    ) -> bytes:
+        """Captures page or regional screenshot."""
+        target_page = page or await self.get_active_page()
+        kwargs: Dict[str, Any] = {"type": "png"}
+        if path:
+            kwargs["path"] = path
+        if clip:
+            kwargs["clip"] = clip
+        return await target_page.screenshot(**kwargs)
+
+    # -------------------------------------------------------------------------
     # Health Monitoring, Diagnostics & State
     # -------------------------------------------------------------------------
 
@@ -479,3 +564,4 @@ class ChromeManager:
 
 # Global singleton instance for easy import across modules
 chrome_manager = ChromeManager()
+ChromiumManager = ChromeManager
