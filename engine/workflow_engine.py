@@ -324,10 +324,46 @@ class WorkflowEngine:
         return await chrome_manager.get_page_for_site(site_id)
 
     async def open_site(self, site: Dict[str, Any], config: Dict[str, Any], page) -> None:
-        """Step: Navigates to target website URL."""
+        """Step: Navigates to target website URL with automatic retries for transient DNS/network drops."""
         url = site["url"]
+        current_url = getattr(page, "url", "") or ""
+
+        # Skip navigation if already at target URL
+        if current_url.rstrip("/") == url.rstrip("/"):
+            logger.info(f"[{site['name']}] Page already on target URL ({url}). Continuing...")
+            return
+
+        timeout_ms = config.get("timeout_sec", 30) * 1000
         logger.info(f"[{site['name']}] Navigating to {url}...")
-        await page.goto(url, wait_until="domcontentloaded", timeout=config.get("timeout_sec", 30) * 1000)
+
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                return
+            except Exception as exc:
+                err_str = str(exc)
+                is_net_err = any(k in err_str for k in (
+                    "ERR_NAME_NOT_RESOLVED",
+                    "ERR_INTERNET_DISCONNECTED",
+                    "ERR_CONNECTION_RESET",
+                    "ERR_CONNECTION_TIMED_OUT",
+                    "ERR_NETWORK_CHANGED",
+                    "Timeout"
+                ))
+                if is_net_err and attempt < max_attempts:
+                    wait_sec = 2.0 * attempt
+                    logger.warning(
+                        f"[{site['name']}] Network/DNS resolution delay on attempt {attempt}/{max_attempts}: {exc}. "
+                        f"Retrying in {wait_sec}s..."
+                    )
+                    await asyncio.sleep(wait_sec)
+                else:
+                    # If page was already displaying content, keep running without hard crashing
+                    if page.url and page.url not in ("about:blank", "chrome://newtab/"):
+                        logger.warning(f"[{site['name']}] Navigation failed but retaining current page: {page.url}")
+                        return
+                    raise
 
     async def detect_page(self, site: Dict[str, Any], config: Dict[str, Any], page) -> bool:
         """Step: Analyzes current page and determines if login is required."""
@@ -461,13 +497,16 @@ class WorkflowEngine:
         )
         state_mgr.add_event(f"[{site_name}] Error in {step_name}: {error_msg}", level="ERROR")
 
-        # Telegram operational error notification
+        # Telegram operational error notification with clean formatting
+        clean_site = site_name.replace("_", "-")
+        clean_step = step_name.replace("_", " ")
+        clean_err = error_msg.replace("_", " ").replace("*", "").replace("`", "")[:250]
         await telegram_service.send_event(
-            f"⚠️ *AUTOMATION ERROR*\n\n"
-            f"*Website:* {site_name}\n"
-            f"*Step:* {step_name}\n"
+            f"⚠️ *AUTOMATION NOTICE*\n\n"
+            f"*Website:* {clean_site}\n"
+            f"*Step:* {clean_step}\n"
             f"*Status:* ERROR\n"
-            f"*Error:* {error_msg}"
+            f"*Notice:* `{clean_err}`"
         )
 
     async def cleanup_site(self, site_id: str, close_tab: bool = False) -> None:

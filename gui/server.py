@@ -401,6 +401,14 @@ async def open_browser():
     """Explicitly launches or foregrounds the Chrome browser."""
     try:
         page = await chrome_manager.start(headless=False)
+        # If page is on about:blank, navigate to target website
+        if page.url in ("about:blank", "chrome://newtab/"):
+            sites = auto_store.list_sites()
+            target_url = sites[0]["url"] if sites else config.broker_url
+            try:
+                await page.goto(target_url, timeout=20000, wait_until="domcontentloaded")
+            except Exception:
+                pass
         try:
             await page.bring_to_front()
         except Exception:

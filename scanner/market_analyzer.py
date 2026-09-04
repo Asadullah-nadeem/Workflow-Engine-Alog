@@ -102,7 +102,7 @@ IN_PAGE_MARKET_EXTRACTOR_JS = r"""
     const symbolHeaderTicker = document.querySelector('[class*="symbol-header-ticker"], [class*="quotesContainer"], [class*="quote-header"]');
     const lastPriceEl = document.querySelector(
         customSelectors?.price || 
-        '.js-symbol-last, [class*="lastContainer"] [class*="last-"], [class*="lastBlock"] [class*="last-"], [data-field*="price"], [class*="currentPrice"]'
+        '.js-symbol-last, [class*="lastContainer"] [class*="last-"], [class*="lastBlock"] [class*="last-"], [class*="pane-legend"] [class*="valueValue-"], [class*="legend-"] [class*="valueValue-"], [data-field*="price"], [class*="currentPrice"]'
     );
 
     if (lastPriceEl && isVisible(lastPriceEl)) {
@@ -126,6 +126,12 @@ IN_PAGE_MARKET_EXTRACTOR_JS = r"""
                                  window.location.pathname.match(/\/quote\/([A-Z0-9:_-]+)/i);
                 if (urlMatch) {
                     sym = urlMatch[1].replace(/^(NSE|BSE):/i, '').toUpperCase();
+                }
+            }
+            if (!sym) {
+                const searchMatch = window.location.search.match(/symbol=([^&]+)/i);
+                if (searchMatch) {
+                    sym = decodeURIComponent(searchMatch[1]).replace(/^(NSE|BSE):/i, '').toUpperCase();
                 }
             }
             if (!sym && h1) {
@@ -295,6 +301,65 @@ IN_PAGE_MARKET_EXTRACTOR_JS = r"""
         }
     }
 
+    // D. CHART VIEW / DOCUMENT TITLE & LEGEND EXTRACTION FALLBACK
+    // TradingView, Google Finance, and broker charts continuously update document.title
+    // e.g. "RELIANCE 1,322.0   +1.5%" or "RELIANCE 1,322.00 +1.50% TradingView" or "TCS 3,850.00 -0.45%"
+    if (results.stocks.length === 0) {
+        const title = document.title || '';
+        const titleRegex = /([A-Z0-9:._-]+)[\s·\u25b2\u25bc\u2191\u2193\u25b6\u25c0▲▼↑↓]+([₹$€£]?\s*[\d,]+(?:\.\d+)?)[\s·\u25b2\u25bc\u2191\u2193\u25b6\u25c0▲▼↑↓]+(?:([+-]?\s*[\d,]+(?:\.\d+)?)\s+)?([+-]?\s*[\d,]+(?:\.\d+)?%?)/i;
+        const titleMatch = title.match(titleRegex);
+        if (titleMatch) {
+            let sym = titleMatch[1].replace(/^(NSE|BSE):/i, '').toUpperCase();
+            const rawP = titleMatch[2].replace(/[₹$€£INRUSD\s,]/gi, '');
+            const parsedP = parseFloat(rawP);
+            
+            let rawChg = titleMatch[3] || '';
+            let rawPct = titleMatch[4] || '';
+            
+            // If group 3 has '%' instead of absolute change
+            if (rawChg && rawChg.includes('%')) {
+                rawPct = rawChg;
+                rawChg = '';
+            }
+
+            let parsedChg = rawChg ? parsePrice(rawChg) : 0.0;
+            let parsedPct = rawPct ? parsePercent(rawPct) : 0.0;
+
+            if ((rawPct && rawPct.includes('-')) || title.includes('▼') || title.includes('↓')) {
+                if (parsedPct > 0) parsedPct = -parsedPct;
+                if (parsedChg > 0) parsedChg = -parsedChg;
+            } else if ((rawPct && rawPct.includes('+')) || title.includes('▲') || title.includes('↑')) {
+                if (parsedPct < 0) parsedPct = Math.abs(parsedPct);
+                if (parsedChg < 0) parsedChg = Math.abs(parsedChg);
+            }
+
+            // Refine symbol from URL parameters if available
+            const searchMatch = window.location.search.match(/symbol=([^&]+)/i);
+            if (searchMatch) {
+                sym = decodeURIComponent(searchMatch[1]).replace(/^(NSE|BSE):/i, '').toUpperCase();
+            } else {
+                const pathMatch = window.location.pathname.match(/\/symbols\/([A-Z0-9:_-]+)/i);
+                if (pathMatch) {
+                    sym = pathMatch[1].replace(/^(NSE|BSE):/i, '').toUpperCase();
+                }
+            }
+
+            if (!isNaN(parsedP) && parsedP > 0 && sym && sym !== 'TRADINGVIEW') {
+                results.screen_type = 'chart_title_view';
+                results.central_region_found = true;
+                results.stocks.push({
+                    symbol: sym,
+                    name: sym,
+                    price: parsedP,
+                    change: parsedChg || 0.0,
+                    change_percent: parsedPct || 0.0,
+                    volume: '',
+                    market_status: results.market_status
+                });
+            }
+        }
+    }
+
     return results;
 }
 """
@@ -455,6 +520,10 @@ class MarketAnalyzer:
             change = float(item.get("change", 0.0) or 0.0)
             change_pct = float(item.get("change_percent", 0.0) or 0.0)
 
+            # If absolute change was not parsed but percent change was, compute estimated change
+            if abs(change) <= 0.0001 and abs(change_pct) > 0.0001:
+                change = round(price * (change_pct / 100.0), 2)
+
             # Retrieve prior snapshot for price delta calculation
             prior = self._previous_snapshots.get(sym)
             previous_price = prior.price if prior else None
@@ -528,24 +597,30 @@ class MarketAnalyzer:
             return False
 
         now = time.time()
+
+        # Filter qualifying stocks based on min change percent threshold
+        qualifying = [
+            s for s in candidates
+            if self.config.telegram_min_change_percent <= 0.0 or abs(s.change_percent) >= self.config.telegram_min_change_percent
+        ]
+        if not qualifying:
+            return False
+
+        # Immediate dispatch on price movement or direction change of qualifying stocks (with 10s debounce)
+        has_movement = any(
+            (s.previous_price is not None and s.price != s.previous_price)
+            for s in qualifying
+        )
+        if has_movement and (now - self._last_alert_time) >= 10:
+            self._last_alert_time = now
+            return True
+
+        # Standard periodic cooldown check
         if (now - self._last_alert_time) < self.config.telegram_notification_cooldown:
             return False
 
-        # If threshold is <= 0.0, dispatch any detected stocks on the screen automatically
-        if self.config.telegram_min_change_percent <= 0.0:
-            self._last_alert_time = now
-            return True
-
-        # Check if any detected stock breaches the configured change percentage threshold
-        has_significant_mover = any(
-            abs(s.change_percent) >= self.config.telegram_min_change_percent
-            for s in candidates
-        )
-        if has_significant_mover:
-            self._last_alert_time = now
-            return True
-
-        return False
+        self._last_alert_time = now
+        return True
 
 
 # Global singleton instance

@@ -97,8 +97,9 @@ class ChromeManager:
                         buff = ctypes.create_unicode_buffer(length + 1)
                         user32.GetWindowTextW(hwnd, buff, length + 1)
                         title = buff.value.lower()
-                        if any(k in title for k in ("chrome", "tradingview", "dhan", "google")):
+                        if any(k in title for k in ("chrome", "tradingview", "dhan", "google", "devtools")):
                             user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                            user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
                             user32.SetForegroundWindow(hwnd)
                 return True
 
@@ -146,10 +147,21 @@ class ChromeManager:
             "--no-first-run",
             "--start-maximized",
             "--disable-dev-shm-usage",
+            "--remote-debugging-port=9222",
+            "--auto-open-devtools-for-tabs",
         ]
 
         fallback_path = Path("chrome_profile").resolve()
         fallback_path.mkdir(parents=True, exist_ok=True)
+
+        # Clear stale lock files in dedicated fallback directory to avoid ProcessSingleton conflicts
+        for lock_name in ("lockfile", "SingletonLock", "SingletonCookie", "SingletonSocket"):
+            lf = fallback_path / lock_name
+            if lf.exists():
+                try:
+                    lf.unlink()
+                except Exception:
+                    pass
 
         target_user_data = user_data_path
         # Check if personal Chrome directory is locked by an active Chrome instance
@@ -172,8 +184,21 @@ class ChromeManager:
             "ignore_default_args": ["--enable-automation"],
         }
 
-        if self.config.chrome_executable_path:
-            launch_kwargs["executable_path"] = self.config.chrome_executable_path
+        # Auto-detect real Google Chrome executable path on Windows if not configured
+        chrome_exe = self.config.chrome_executable_path
+        if not chrome_exe:
+            candidates = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+            ]
+            for c in candidates:
+                if c and Path(c).exists():
+                    chrome_exe = str(c)
+                    break
+
+        if chrome_exe:
+            launch_kwargs["executable_path"] = chrome_exe
         else:
             launch_kwargs["channel"] = "chrome"
 
