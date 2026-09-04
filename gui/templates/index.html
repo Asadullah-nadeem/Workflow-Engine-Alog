@@ -1742,23 +1742,63 @@
         // Terminal Logging & Helpers
         // ---------------------------------------------------------------------
         function appendLog(level, message) {
-            const box = document.getElementById('terminal-stream');
-            const row = document.createElement('div');
-            row.className = 'log-entry';
+            const boxes = [
+                document.getElementById('terminal-stream'),
+                document.getElementById('terminal-stream-pop')
+            ];
 
             const now = new Date().toTimeString().split(' ')[0];
-            row.innerHTML = `
+            const html = `
                 <span class="log-time">[${now}]</span>
                 <span class="log-lvl log-lvl-${level}">${level}</span>
                 <span class="log-msg">${escapeHtml(message)}</span>
             `;
 
-            box.appendChild(row);
-            box.scrollTop = box.scrollHeight;
+            boxes.forEach(box => {
+                if (box) {
+                    const row = document.createElement('div');
+                    row.className = 'log-entry';
+                    row.innerHTML = html;
+                    box.appendChild(row);
+                    box.scrollTop = box.scrollHeight;
+                }
+            });
+        }
+
+        function openLogsModal() {
+            const mainBox = document.getElementById('terminal-stream');
+            const popBox = document.getElementById('terminal-stream-pop');
+            if (mainBox && popBox) {
+                popBox.innerHTML = mainBox.innerHTML;
+                popBox.scrollTop = popBox.scrollHeight;
+            }
+            openModal('modal-logs-pop');
         }
 
         function clearTerminal() {
-            document.getElementById('terminal-stream').innerHTML = '';
+            const mainBox = document.getElementById('terminal-stream');
+            if (mainBox) mainBox.innerHTML = '';
+            const popBox = document.getElementById('terminal-stream-pop');
+            if (popBox) popBox.innerHTML = '';
+            showToast('Operational logs cleared.', 'info');
+        }
+
+        function exportLogs() {
+            const box = document.getElementById('terminal-stream');
+            if (!box || !box.innerText.trim()) {
+                showToast('No logs available to export.', 'warning');
+                return;
+            }
+            const blob = new Blob([box.innerText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `operational_logs_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Logs exported successfully!', 'success');
         }
 
         function openModal(id) {
