@@ -702,6 +702,113 @@
             </div>
         </div>
 
+        <!-- ============================================================= -->
+        <!-- MARKET SCREEN ANALYZER & REAL-TIME MOVERS DECK                 -->
+        <!-- ============================================================= -->
+        <div class="card" style="margin-top: 18px;" id="card-market-analyzer">
+            <div class="card-header" style="padding: 16px 22px;">
+                <div class="card-title" style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan); font-size: 18px;"></i>
+                    <span style="font-weight: 700; letter-spacing: 0.5px;">STOCK MARKET SCREEN ANALYZER</span>
+                    <span id="badge-market-screen" class="badge" style="background: rgba(47, 128, 237, 0.15); color: var(--accent-blue); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(47, 128, 237, 0.3);">
+                        <i class="fa-solid fa-desktop" style="font-size: 9px; margin-right: 5px;"></i> <span id="lbl-market-screen">DETECTING...</span>
+                    </span>
+                    <span id="badge-scanner-state" class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <i class="fa-solid fa-circle" style="font-size: 6px; margin-right: 5px; animation: pulse 1.5s infinite;"></i> <span id="lbl-scanner-state">READY</span>
+                    </span>
+                </div>
+                <div class="btn-toolbar">
+                    <button class="btn btn-primary btn-sm" onclick="triggerMarketScanNow()" id="btn-scan-now">
+                        <i class="fa-solid fa-bolt"></i> Scan Now
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="startAllSites()" title="Start continuous market scan workers">
+                        <i class="fa-solid fa-play"></i> Start Continuous
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="stopAllSites()" title="Stop all scan workers">
+                        <i class="fa-solid fa-stop"></i> Stop
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="refreshMarketData()" title="Reload market data">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUB-HEADER METRIC STRIP -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; padding: 14px 22px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid var(--border-faint); font-size: 12px;">
+                <div>
+                    <span style="color: var(--text-muted);">Target Market Tab:</span>
+                    <div id="val-market-target" style="font-weight: 600; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">-</div>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted);">Last Analysis:</span>
+                    <div id="val-market-time" style="font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono);">-</div>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted);">Stocks Extracted:</span>
+                    <div id="val-market-count" style="font-weight: 700; color: var(--text-main); font-size: 14px;">0</div>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted);">Market Status:</span>
+                    <div id="val-market-status" style="font-weight: 600; color: var(--warning);">-</div>
+                </div>
+            </div>
+
+            <!-- DUAL COLUMN TOP GAINERS & TOP DECLINERS -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
+                <!-- GAINERS -->
+                <div style="background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: var(--radius-md); padding: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-weight: 700; color: var(--success); font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-arrow-trend-up"></i> TOP GAINERS (UP)
+                        </div>
+                        <span id="badge-gainers-count" class="tag-pill pill-running" style="font-size: 10px;">0 STOCKS</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                        <table style="font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Change</th>
+                                    <th>Change %</th>
+                                    <th style="text-align: right;">Direction</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-gainers-body">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No gainers detected yet. Click "Scan Now" or Start site.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- DECLINERS -->
+                <div style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: var(--radius-md); padding: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="font-weight: 700; color: var(--danger); font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-arrow-trend-down"></i> TOP DECLINERS (DOWN)
+                        </div>
+                        <span id="badge-decliners-count" class="tag-pill pill-error" style="font-size: 10px;">0 STOCKS</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                        <table style="font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Change</th>
+                                    <th>Change %</th>
+                                    <th style="text-align: right;">Direction</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-decliners-body">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No decliners detected yet. Click "Scan Now" or Start site.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- LIVE OPERATIONAL STREAM & LOGS (FULL-WIDTH EXPANDED) -->
         <div class="card" style="margin-top: 10px;">
             <div class="card-header" style="padding: 14px 20px;">
@@ -1102,6 +1209,8 @@
                         updateGlobalStateUI(payload.data);
                     } else if (payload.type === 'log') {
                         appendLog(payload.data.level, payload.data.message);
+                    } else if (payload.type === 'market_update') {
+                        updateMarketUI(payload.data);
                     }
                 } catch (e) {
                     console.error('WS parse error:', e);
@@ -1118,7 +1227,9 @@
             connectWebSocket();
             refreshStatus();
             loadSites();
+            refreshMarketData();
             setInterval(pollSitesAndOtp, 4000);
+            setInterval(refreshMarketData, 5000);
         });
 
         // ---------------------------------------------------------------------
@@ -1312,6 +1423,143 @@
                     showOtpModal(p.site_id, p.name);
                 }
             } catch (e) {}
+        }
+
+        // ---------------------------------------------------------------------
+        // Stock Market Screen Analysis UI Functions
+        // ---------------------------------------------------------------------
+        async function refreshMarketData() {
+            try {
+                const res = await fetch('/api/market/latest');
+                if (res.ok) {
+                    const data = await res.json();
+                    updateMarketUI(data);
+                }
+            } catch (e) {
+                console.debug('Market data fetch notice:', e);
+            }
+        }
+
+        function updateMarketUI(data) {
+            if (!data) return;
+
+            // Update badges and state labels
+            const lblScreen = document.getElementById('lbl-market-screen');
+            const badgeScreen = document.getElementById('badge-market-screen');
+            if (data.screen_detected) {
+                lblScreen.innerText = 'SCREEN: DETECTED';
+                badgeScreen.style.borderColor = 'var(--accent-cyan)';
+                badgeScreen.style.color = 'var(--accent-cyan)';
+            } else {
+                lblScreen.innerText = 'SCREEN: SEARCHING';
+                badgeScreen.style.borderColor = 'var(--text-muted)';
+                badgeScreen.style.color = 'var(--text-muted)';
+            }
+
+            const lblState = document.getElementById('lbl-scanner-state');
+            const badgeState = document.getElementById('badge-scanner-state');
+            const state = data.scanner_state || 'READY';
+            lblState.innerText = state;
+            if (state === 'SCANNING' || state === 'ANALYZING') {
+                badgeState.style.borderColor = 'var(--accent-cyan)';
+                badgeState.style.color = 'var(--accent-cyan)';
+            } else if (state === 'NO_DATA') {
+                badgeState.style.borderColor = 'var(--warning)';
+                badgeState.style.color = 'var(--warning)';
+            } else if (state === 'ERROR') {
+                badgeState.style.borderColor = 'var(--danger)';
+                badgeState.style.color = 'var(--danger)';
+            } else {
+                badgeState.style.borderColor = 'var(--success)';
+                badgeState.style.color = 'var(--success)';
+            }
+
+            // Sub-metrics
+            const targetEl = document.getElementById('val-market-target');
+            if (targetEl) {
+                targetEl.innerText = data.target_page_title || data.target_page_url || 'Target Page Active';
+                targetEl.title = data.target_page_url || '';
+            }
+            const timeEl = document.getElementById('val-market-time');
+            if (timeEl) timeEl.innerText = data.timestamp || '-';
+            const countEl = document.getElementById('val-market-count');
+            if (countEl) countEl.innerText = data.stocks_detected !== undefined ? data.stocks_detected : (data.stocks ? data.stocks.length : 0);
+            const statusEl = document.getElementById('val-market-status');
+            if (statusEl) {
+                const s = (data.stocks && data.stocks.length > 0) ? (data.stocks[0].market_status || 'Active') : 'Standby';
+                statusEl.innerText = s;
+            }
+
+            // Render Gainers Table
+            const gainersBody = document.getElementById('tbl-gainers-body');
+            const gainersBadge = document.getElementById('badge-gainers-count');
+            const gainers = data.top_gainers || [];
+            if (gainersBadge) gainersBadge.innerText = `${gainers.length} STOCKS`;
+
+            if (gainersBody) {
+                if (gainers.length === 0) {
+                    gainersBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">No gainers detected yet. Click "Scan Now" or Start site.</td></tr>';
+                } else {
+                    gainersBody.innerHTML = gainers.map(s => `
+                        <tr>
+                            <td><b style="color: var(--text-main);">${escapeHtml(s.symbol)}</b><div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(s.name || '')}</div></td>
+                            <td style="font-weight: 600; font-family: var(--font-mono); color: var(--text-main);">₹${s.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td style="color: var(--success); font-family: var(--font-mono);">+${(s.change || 0).toFixed(2)}</td>
+                            <td style="color: var(--success); font-weight: 700; font-family: var(--font-mono);">+${(s.change_percent || 0).toFixed(2)}%</td>
+                            <td style="text-align: right;"><span class="tag-pill pill-running" style="font-size: 10px;"><i class="fa-solid fa-arrow-up"></i> UP</span></td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // Render Decliners Table
+            const declinersBody = document.getElementById('tbl-decliners-body');
+            const declinersBadge = document.getElementById('badge-decliners-count');
+            const decliners = data.top_decliners || [];
+            if (declinersBadge) declinersBadge.innerText = `${decliners.length} STOCKS`;
+
+            if (declinersBody) {
+                if (decliners.length === 0) {
+                    declinersBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">No decliners detected yet. Click "Scan Now" or Start site.</td></tr>';
+                } else {
+                    declinersBody.innerHTML = decliners.map(s => `
+                        <tr>
+                            <td><b style="color: var(--text-main);">${escapeHtml(s.symbol)}</b><div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(s.name || '')}</div></td>
+                            <td style="font-weight: 600; font-family: var(--font-mono); color: var(--text-main);">₹${s.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td style="color: var(--danger); font-family: var(--font-mono);">${(s.change || 0).toFixed(2)}</td>
+                            <td style="color: var(--danger); font-weight: 700; font-family: var(--font-mono);">${(s.change_percent || 0).toFixed(2)}%</td>
+                            <td style="text-align: right;"><span class="tag-pill pill-error" style="font-size: 10px;"><i class="fa-solid fa-arrow-down"></i> DOWN</span></td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+        async function triggerMarketScanNow() {
+            const btn = document.getElementById('btn-scan-now');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
+            }
+            showToast('Scanning Chromium stock market screen...', 'info');
+
+            try {
+                const res = await fetch('/api/market/scan-now', { method: 'POST' });
+                const json = await res.json();
+                if (res.ok) {
+                    updateMarketUI(json);
+                    showToast(`Scan complete: ${json.stocks_detected} stocks analyzed!`, 'success');
+                } else {
+                    showToast('Scan warning: ' + (json.detail || 'Could not analyze market page.'), 'warning');
+                }
+            } catch (e) {
+                showToast('Market scan failed: ' + e, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Scan Now';
+                }
+            }
         }
 
         // ---------------------------------------------------------------------

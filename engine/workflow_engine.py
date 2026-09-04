@@ -15,8 +15,10 @@ from browser.chrome_manager import chrome_manager
 from config import get_config
 from engine.auth_manager import auth_manager
 from scanner.website_scanner import WebsiteScanner
+from scanner.market_analyzer import market_analyzer, StockSnapshot, MarketAnalysisResult
 from services.state_manager import state_mgr
 from storage.automation_store import auto_store
+from storage.event_store import EventStore
 from telegram.telegram_service import telegram_service
 from utils.logger import get_logger
 
@@ -348,24 +350,70 @@ class WorkflowEngine:
         return await auth_manager.authenticate(site, config, page)
 
     async def execute_workflow(self, site: Dict[str, Any], config: Dict[str, Any], page) -> Dict[str, Any]:
-        """Step: Gathers live operational telemetry from the site."""
-        title = await page.title()
-        url = page.url
+        """Step: Gathers live operational market analysis and telemetry from the site."""
+        site_name = site["name"]
+
+        custom_selectors = {
+            "region": config.get("market_region_selector", "") or self.config.market_region_selector,
+            "row": config.get("stock_row_selector", "") or self.config.stock_row_selector,
+            "symbol": config.get("symbol_selector", "") or self.config.symbol_selector,
+            "price": config.get("price_selector", "") or self.config.price_selector,
+            "change": config.get("change_selector", "") or self.config.change_selector,
+            "percent": config.get("change_percent_selector", "") or self.config.change_percent_selector,
+        }
+
+        # Run dedicated Stock Market Screen Analyzer
+        analysis = await market_analyzer.analyze_page(page, custom_selectors=custom_selectors)
+
+        # Persist structured snapshots in SQLite database
+        if analysis.stocks:
+            try:
+                event_store = EventStore(db_path=self.config.database_path)
+                event_store.save_market_snapshots_batch(analysis.stocks)
+            except Exception as store_err:
+                logger.debug(f"Failed to persist market snapshots: {store_err}")
+
+        # Dispatch Telegram market alert if cooldown and change thresholds are met
+        if market_analyzer.should_dispatch_telegram_alert(analysis):
+            try:
+                await telegram_service.send_market_alert(analysis)
+            except Exception as tg_err:
+                logger.debug(f"Telegram market alert notice: {tg_err}")
+
+        page_title = analysis.target_page_title or (await page.title())
+        current_url = analysis.target_page_url or page.url
+
         return {
-            "page_title": title,
-            "current_url": url,
+            "site_id": site["id"],
+            "page_title": page_title,
+            "current_url": current_url,
+            "analysis": analysis.dict(),
+            "stocks_count": analysis.stocks_detected,
+            "gainers_count": len(analysis.top_gainers),
+            "decliners_count": len(analysis.top_decliners),
             "timestamp": datetime.now().isoformat(),
         }
 
     async def process_data(self, site: Dict[str, Any], config: Dict[str, Any], page, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Step: Processes and validates gathered page telemetry."""
+        """Step: Processes and validates gathered page and market telemetry."""
         site_name = site["name"]
-        logger.info(f"[{site_name}] Processing workflow telemetry: {raw_data.get('page_title')} ({raw_data.get('current_url')})")
+        stocks_count = raw_data.get("stocks_count", 0)
+        analysis = raw_data.get("analysis", {})
+        stocks = analysis.get("stocks", [])
+
+        if stocks_count > 0 and stocks:
+            top = stocks[0]
+            sign = "+" if top.get("change", 0) >= 0 else ""
+            summary = f"Analyzed {stocks_count} stocks: {top['symbol']} ₹{top['price']:,.2f} ({sign}{top['change_percent']:.2f}% {top['direction']})"
+        else:
+            summary = f"Active page verified: {raw_data.get('page_title', '')}"
+
+        logger.info(f"[{site_name}] {summary} ({raw_data.get('current_url')})")
         return {
             "site_id": site["id"],
-            "records_processed": 1,
+            "records_processed": max(stocks_count, 1),
             "errors_count": 0,
-            "summary": f"Active page verified: {raw_data.get('page_title')}",
+            "summary": summary,
             "details": raw_data,
         }
 

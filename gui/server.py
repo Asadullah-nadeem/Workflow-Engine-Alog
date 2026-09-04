@@ -21,6 +21,7 @@ from browser.chrome_manager import chrome_manager
 from monitoring.event_monitor import EventMonitor
 from engine.workflow_engine import workflow_engine
 from engine.auth_manager import auth_manager
+from scanner.market_analyzer import market_analyzer
 from services.state_manager import state_mgr, AppState, ChromeState, TelegramState, BrokerState
 from utils.logger import get_logger
 
@@ -419,6 +420,77 @@ async def close_browser():
     await chrome_manager.cleanup()
     state_mgr.add_event("Chrome browser closed.", level="INFO")
     return {"status": "ok", "message": "Chrome browser closed."}
+
+
+# ------------------------------------------------------------------------------
+# Stock Market Screen Analysis APIs
+# ------------------------------------------------------------------------------
+@app.get("/api/market/latest")
+async def get_latest_market_data():
+    """Returns the latest stock market analysis result, top movers, and scan status."""
+    last_res = market_analyzer.last_result
+    if last_res:
+        return last_res.dict()
+
+    # Fallback to database history if available
+    store = EventStore(db_path=config.database_path)
+    latest_rows = store.get_latest_market_snapshots(limit=30)
+    return {
+        "scanner_state": "READY" if latest_rows else "IDLE",
+        "screen_detected": bool(latest_rows),
+        "target_page_title": "",
+        "target_page_url": "",
+        "central_region_found": bool(latest_rows),
+        "stocks_detected": len(latest_rows),
+        "stocks": latest_rows,
+        "top_gainers": [r for r in latest_rows if r.get("direction") == "UP"][:10],
+        "top_decliners": [r for r in latest_rows if r.get("direction") == "DOWN"][:10],
+        "flat_count": sum(1 for r in latest_rows if r.get("direction") == "FLAT"),
+        "uncertain_count": sum(1 for r in latest_rows if r.get("direction") == "DATA_UNCERTAIN"),
+    }
+
+
+@app.post("/api/market/scan-now")
+async def scan_market_now():
+    """Triggers an immediate DOM and central market region analysis on active Chromium tab."""
+    state_mgr.add_event("Immediate Market Screen Scan initiated...", level="INFO")
+    page = await chrome_manager.get_active_page()
+    if not page or page.is_closed():
+        raise HTTPException(status_code=400, detail="No active browser page open. Please start a site or open Chrome.")
+
+    analysis = await market_analyzer.analyze_page(page)
+
+    if analysis.stocks:
+        store = EventStore(db_path=config.database_path)
+        store.save_market_snapshots_batch(analysis.stocks)
+        state_mgr.add_event(
+            f"Market scan completed: {analysis.stocks_detected} stocks detected. "
+            f"Gainers: {len(analysis.top_gainers)}, Decliners: {len(analysis.top_decliners)}",
+            level="SUCCESS"
+        )
+    else:
+        state_mgr.add_event(
+            f"Market scan notice: {analysis.reason or 'No stocks detected in market region.'}",
+            level="WARNING"
+        )
+
+    # Broadcast to WebSocket clients
+    await manager.broadcast({
+        "type": "market_update",
+        "data": analysis.dict()
+    })
+
+    return analysis.dict()
+
+
+@app.get("/api/market/history")
+async def get_market_history(symbol: Optional[str] = None, limit: int = 50):
+    """Returns historical market snapshots."""
+    store = EventStore(db_path=config.database_path)
+    if symbol:
+        return {"snapshots": store.get_symbol_history(symbol, limit=limit)}
+    return {"snapshots": store.get_latest_market_snapshots(limit=limit)}
+
 
 
 # ------------------------------------------------------------------------------

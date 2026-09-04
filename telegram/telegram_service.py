@@ -251,6 +251,44 @@ class TelegramService:
         """
         return await self.send_message(message)
 
+    async def send_market_alert(self, result: Any) -> bool:
+        """
+        Dispatches a structured, non-spam market-analysis update to Telegram.
+        """
+        if not self.enabled or not self.bot_token or not self.chat_id:
+            return False
+
+        scan_time = getattr(result, "timestamp", datetime.now().strftime("%H:%M:%S"))
+        stocks_count = getattr(result, "stocks_detected", 0)
+        gainers = getattr(result, "top_gainers", [])
+        decliners = getattr(result, "top_decliners", [])
+        scanner_state = getattr(result, "scanner_state", "RUNNING")
+
+        lines = [
+            "📊 *MARKET UPDATE*",
+            "",
+            f"*Scan Time:* `{scan_time}`",
+            f"*Stocks Detected:* {stocks_count}",
+        ]
+
+        if gainers:
+            lines.append("\n🟢 *Top Gainers:*")
+            for g in gainers[:5]:
+                sign = "+" if g.change >= 0 else ""
+                lines.append(f"• *{g.symbol}:* ₹{g.price:,.2f} ({sign}{g.change_percent:.2f}% UP)")
+
+        if decliners:
+            lines.append("\n🔴 *Top Decliners:*")
+            for d in decliners[:5]:
+                lines.append(f"• *{d.symbol}:* ₹{d.price:,.2f} ({d.change_percent:.2f}% DOWN)")
+
+        lines.extend([
+            "",
+            f"*Scanner:* `{scanner_state}`"
+        ])
+
+        return await self.send_message("\n".join(lines))
+
     async def send_shutdown(self) -> bool:
         """
         Dispatches clean shutdown notice to Telegram.

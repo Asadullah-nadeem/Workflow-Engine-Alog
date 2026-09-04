@@ -95,6 +95,31 @@ class EventStore:
                     ON processed_events(order_id, status);
                     """
                 )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS market_snapshots (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        symbol TEXT NOT NULL,
+                        name TEXT,
+                        price REAL NOT NULL,
+                        previous_price REAL,
+                        change_amount REAL,
+                        change_percent REAL,
+                        direction TEXT NOT NULL,
+                        volume TEXT,
+                        market_status TEXT,
+                        source TEXT,
+                        metadata TEXT
+                    );
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_snapshots_sym_time 
+                    ON market_snapshots(symbol, scanned_at);
+                    """
+                )
                 conn.commit()
                 logger.debug(f"EventStore initialized at {self.db_path}")
 
@@ -229,3 +254,106 @@ class EventStore:
                 if deleted > 0:
                     logger.info(f"Cleaned up {deleted} old event records (older than {days} days).")
                 return deleted
+
+    # --------------------------------------------------------------------------
+    # Market Snapshots Persistence
+    # --------------------------------------------------------------------------
+    def save_market_snapshot(self, snap: Any) -> int:
+        """Saves an individual StockSnapshot model into SQLite."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO market_snapshots (
+                        scanned_at, symbol, name, price, previous_price,
+                        change_amount, change_percent, direction, volume,
+                        market_status, source, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        getattr(snap, "timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        snap.symbol,
+                        snap.name,
+                        snap.price,
+                        snap.previous_price,
+                        snap.change,
+                        snap.change_percent,
+                        snap.direction,
+                        snap.volume,
+                        snap.market_status,
+                        snap.source,
+                        json.dumps(getattr(snap, "metadata", {})),
+                    ),
+                )
+                conn.commit()
+                return cursor.lastrowid
+
+    def save_market_snapshots_batch(self, snapshots: List[Any]) -> int:
+        """Saves a collection of StockSnapshot models in a single transaction."""
+        if not snapshots:
+            return 0
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                rows = [
+                    (
+                        getattr(s, "timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        s.symbol,
+                        s.name,
+                        s.price,
+                        s.previous_price,
+                        s.change,
+                        s.change_percent,
+                        s.direction,
+                        s.volume,
+                        s.market_status,
+                        s.source,
+                        json.dumps(getattr(s, "metadata", {})),
+                    )
+                    for s in snapshots
+                ]
+                cursor.executemany(
+                    """
+                    INSERT INTO market_snapshots (
+                        scanned_at, symbol, name, price, previous_price,
+                        change_amount, change_percent, direction, volume,
+                        market_status, source, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    rows,
+                )
+                conn.commit()
+                return len(rows)
+
+    def get_latest_market_snapshots(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieves the most recent market snapshots."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT * FROM market_snapshots
+                    ORDER BY id DESC
+                    LIMIT ?;
+                    """,
+                    (limit,),
+                )
+                return [dict(row) for row in cursor.fetchall()]
+
+    def get_symbol_history(self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Retrieves historical snapshots for a specific stock ticker."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT * FROM market_snapshots
+                    WHERE symbol = ?
+                    ORDER BY id DESC
+                    LIMIT ?;
+                    """,
+                    (symbol.upper(), limit),
+                )
+                return [dict(row) for row in cursor.fetchall()]
+
