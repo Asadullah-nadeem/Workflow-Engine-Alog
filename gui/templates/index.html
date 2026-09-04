@@ -961,6 +961,115 @@
         </div>
     </div>
 
+    <!-- ================================================================= -->
+    <!-- MODAL 6: OPERATIONAL TELEGRAM & SYSTEM SETTINGS                   -->
+    <!-- ================================================================= -->
+    <div id="modal-settings" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 780px;">
+            <div class="modal-header">
+                <div class="card-title" style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-sliders" style="color: var(--accent-cyan);"></i>
+                    Operational Telegram & System Settings
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-settings')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="gap: 20px;">
+                <!-- Telegram section -->
+                <div style="background: rgba(47, 128, 237, 0.08); border: 1px solid rgba(47, 128, 237, 0.25); border-radius: var(--radius-md); padding: 18px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                        <div style="font-weight: 700; color: var(--accent-cyan); font-size: 13px; text-transform: uppercase;">
+                            <i class="fa-brands fa-telegram"></i> Telegram Live Alerts & Interactive Bot
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="testTelegram()">
+                            <i class="fa-solid fa-paper-plane"></i> Test Telegram
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Telegram Bot Token</label>
+                            <input type="password" id="cfg-tg-token" class="form-input" placeholder="123456789:ABC-DEF..." />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telegram Chat ID</label>
+                            <input type="text" id="cfg-tg-chat" class="form-input" placeholder="-100... or user ID" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Broker & Execution section -->
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-faint); border-radius: var(--radius-md); padding: 18px;">
+                    <div style="font-weight: 700; color: var(--accent-blue); font-size: 13px; text-transform: uppercase; margin-bottom: 14px;">
+                        <i class="fa-solid fa-network-wired"></i> Broker Defaults & Chrome Profile
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Primary Broker Name</label>
+                            <input type="text" id="cfg-broker-name" class="form-input" placeholder="dhan" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Primary Broker URL</label>
+                            <input type="text" id="cfg-broker-url" class="form-input" placeholder="https://web.dhan.co" />
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 14px;">
+                        <div class="form-group">
+                            <label class="form-label">Chrome Profile Directory</label>
+                            <input type="text" id="cfg-chrome-profile" class="form-input" value="Default" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Execution Check Interval (s)</label>
+                            <input type="number" id="cfg-check-interval" class="form-input" value="5" min="1" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn btn-secondary" onclick="closeModal('modal-settings')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveGlobalSettings()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save System Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 7: POP SHOW LIVE OPERATIONAL STREAM & LOGS                 -->
+    <!-- ================================================================= -->
+    <div id="modal-logs-pop" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 1100px; width: 95%; height: 85vh;">
+            <div class="modal-header">
+                <div class="card-title" style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-terminal" style="color: var(--accent-cyan);"></i>
+                    <span>Live Operational Stream & Logs (Expanded Pop View)</span>
+                    <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); color: var(--success); font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600;">
+                        <i class="fa-solid fa-circle" style="font-size: 6px; color: var(--success); animation: pulse 1.5s infinite;"></i> STREAMING
+                    </span>
+                </div>
+                <div class="btn-toolbar">
+                    <button class="btn btn-secondary btn-sm" onclick="clearTerminal()">
+                        <i class="fa-solid fa-broom"></i> Clear
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportLogs()">
+                        <i class="fa-solid fa-file-arrow-down"></i> Export
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-logs-pop')">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <div class="terminal-box" id="terminal-stream-pop" style="height: 100%; max-height: 100%; border-radius: 0; padding: 18px; font-size: 13px;">
+                    <!-- Synchronized logs -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> Real-time synchronized with backend event stream</span>
+                <button class="btn btn-secondary" onclick="closeModal('modal-logs-pop')">Close Pop Window</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST ALERT -->
     <div id="toast">
         <i id="toast-icon" class="fa-solid fa-circle-info"></i>
