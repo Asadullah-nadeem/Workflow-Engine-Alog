@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Universal Website Automation & Workflow Engine</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-base: #080C12;
+            --bg-card: #0F1722;
+            --bg-card-hover: #142030;
+            --bg-input: #0A1018;
+            --border-subtle: rgba(47, 155, 255, 0.15);
+            --border-faint: rgba(255, 255, 255, 0.07);
+            --accent-cyan: #00D2FF;
+            --accent-blue: #2F80ED;
+            --accent-purple: #9B51E0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text-main: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
+            --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.6);
+            --shadow-glow: 0 0 20px rgba(0, 210, 255, 0.15);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(47, 128, 237, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(155, 81, 224, 0.08) 0%, transparent 40%);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: rgba(47, 128, 237, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+        /* HEADER */
+        header {
+            background: rgba(15, 23, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px 28px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #FFFFFF, #BDE0FE);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .header-badges {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-faint);
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-green { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .dot-blue { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+        .dot-amber { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+        .dot-red { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .dot-gray { background: var(--text-muted); }
+
+        /* METRICS BAR */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            padding: 20px 28px 10px 28px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-faint);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .metric-card:hover {
+            border-color: var(--border-subtle);
+            transform: translateY(-2px);
+        }
+
+        .metric-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .metric-val {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .metric-lbl {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* MAIN WRAPPER */
+        .main-content {
+            padding: 10px 28px 28px 28px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            flex: 1;
+        }
+
+        /* SECTION CARDS */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-faint);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-faint);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), #1D4ED8);
+            color: #FFFFFF;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 12px rgba(47, 128, 237, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-success:hover {
+            background: var(--success);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #FFF;
+        }
+
+        .btn-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .btn-warning:hover {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border-color: var(--border-faint);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.09);
+            color: var(--text-main);
+        }
+
+        .btn-sm {
+            padding: 5px 9px;
+            font-size: 11px;
+        }
+
+        .btn-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* URL TABLE */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-faint);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .site-link {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .site-link:hover { text-decoration: underline; }
+
+        .tag-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .pill-ready { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; }
+        .pill-running { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
+        .pill-paused { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }
+        .pill-error { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); }
+        .pill-otp { background: #EF4444; color: #FFFFFF; font-weight: 700; animation: flash 1.2s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.97); }
+        }
+
+        /* DUAL COLUMN BOTTOM GRID */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .bottom-grid { grid-template-columns: 1fr; }
+        }
+
+        /* LIVE TERMINAL */
+        .terminal-box {
+            background: var(--bg-input);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 14px;
+            height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.4;
+        }
+
+        .log-time { color: var(--text-muted); flex-shrink: 0; }
+        .log-lvl { font-weight: 600; padding: 1px 4px; border-radius: 3px; font-size: 10px; flex-shrink: 0; }
+        .log-lvl-INFO { color: var(--accent-cyan); background: rgba(0, 210, 255, 0.1); }
+        .log-lvl-SUCCESS { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+        .log-lvl-WARNING { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+        .log-lvl-ERROR { color: var(--danger); background: rgba(239, 68, 68, 0.15); }
+        .log-msg { color: #E2E8F0; word-break: break-all; }
+
+        /* MODALS */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            max-width: 680px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+            animation: modalIn 0.2s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-faint);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-faint);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* FORM CONTROLS */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-faint);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.15);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* OTP MODAL SPECIAL STYLING */
+        .otp-box {
+            text-align: center;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .otp-icon-large {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid var(--danger);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        .otp-input-digits {
+            font-family: var(--font-mono);
+            font-size: 28px;
+            letter-spacing: 10px;
+            text-align: center;
+            width: 240px;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 2px solid var(--accent-cyan);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+        }
+
+        /* TOAST NOTIFICATION */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 200;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header>
+        <div class="brand-box">
+            <div class="brand-icon">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div>
+                <div class="brand-title">UNIVERSAL AUTOMATION ENGINE</div>
+                <div class="brand-sub">Enterprise Website Workflow & Form Automation Platform</div>
+            </div>
+        </div>
+
+        <div class="header-badges">
+            <div class="badge">
+                <div id="dot-engine" class="badge-dot dot-green"></div>
+                <span>Engine: <b id="lbl-engine-state">READY</b></span>
+            </div>
+            <div class="badge">
+                <div id="dot-chrome" class="badge-dot dot-gray"></div>
+                <span>Chrome: <b id="lbl-chrome-state">DISCONNECTED</b></span>
+            </div>
+            <div class="badge">
+                <div id="dot-telegram" class="badge-dot dot-gray"></div>
+                <span>Telegram: <b id="lbl-telegram-state">STANDBY</b></span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openChromeBrowser()" style="padding: 6px 14px; font-size: 12px; border-radius: 20px;">
+                <i class="fa-brands fa-chrome"></i> Open Chrome
+            </button>
+        </div>
+    </header>
+
+    <!-- METRICS STRIP -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: rgba(47, 128, 237, 0.15); color: var(--accent-cyan);">
+                <i class="fa-solid fa-globe"></i>
+            </div>
+            <div>
+                <div class="metric-val" id="val-sites-count">0</div>
+                <div class="metric-lbl">Authorized Sites</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">
+                <i class="fa-solid fa-play"></i>
+            </div>
+            <div>
+                <div class="metric-val" id="val-running-count">0</div>
+                <div class="metric-lbl">Active Workers</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon" style="background: rgba(155, 81, 224, 0.15); color: var(--accent-purple);">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+                <div class="metric-val" id="val-processed-count">0</div>
+                <div class="metric-lbl">Processed Telemetry</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+                <div class="metric-val" id="val-otp-pending">0</div>
+                <div class="metric-lbl">Pending OTP Requests</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--danger);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <div class="metric-val" id="val-errors-count">0</div>
+                <div class="metric-lbl">Failures / Retries</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <div class="main-content">
+
+        <!-- URL MANAGER SECTION -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fa-solid fa-list-check" style="color: var(--accent-cyan);"></i>
+                    Authorized Target Websites & Automation Manager
+                </div>
+                <div class="btn-toolbar">
+                    <button class="btn btn-primary" onclick="openAddSiteModal()">
+                        <i class="fa-solid fa-plus"></i> Add URL
+                    </button>
+                    <button class="btn btn-secondary" onclick="batchAction('scan')">
+                        <i class="fa-solid fa-magnifying-glass"></i> Scan Selected
+                    </button>
+                    <button class="btn btn-success" onclick="batchAction('start')">
+                        <i class="fa-solid fa-play"></i> Start Selected
+                    </button>
+                    <button class="btn btn-danger" onclick="batchAction('stop')">
+                        <i class="fa-solid fa-stop"></i> Stop Selected
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="startAllSites()">
+                        <i class="fa-solid fa-forward"></i> Start All
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="stopAllSites()">
+                        <i class="fa-solid fa-ban"></i> Stop All
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="chk-select-all" onchange="toggleSelectAll(this)" /></th>
+                            <th>Website & Target URL</th>
+                            <th>Scan Status</th>
+                            <th>Auth Status</th>
+                            <th>Automation Status</th>
+                            <th>Last Exec / Result</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-sites-body">
+                        <!-- Dynamic rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BOTTOM SPLIT: LOGS & TELEGRAM/SETTINGS -->
+        <div class="bottom-grid">
+
+            <!-- LIVE SYSTEM TERMINAL -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-terminal" style="color: var(--accent-cyan);"></i>
+                        Live Operational Stream & Logs
+                    </div>
+                    <div class="btn-toolbar">
+                        <button class="btn btn-secondary btn-sm" onclick="clearTerminal()">
+                            <i class="fa-solid fa-broom"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="terminal-box" id="terminal-stream">
+                    <!-- Stream entries appended here -->
+                </div>
+            </div>
+
+            <!-- TELEGRAM & GLOBAL CONFIG -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-brands fa-telegram" style="color: #2F80ED;"></i>
+                        Operational Telegram & System Settings
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="testTelegram()">
+                        <i class="fa-solid fa-paper-plane"></i> Test Telegram
+                    </button>
+                </div>
+                <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Telegram Bot Token</label>
+                            <input type="password" id="cfg-tg-token" class="form-input" placeholder="123456:ABC-DEF..." />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Telegram Chat ID</label>
+                            <input type="text" id="cfg-tg-chat" class="form-input" placeholder="-100... or user ID" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Primary Broker Name</label>
+                            <input type="text" id="cfg-broker-name" class="form-input" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Primary Broker URL</label>
+                            <input type="text" id="cfg-broker-url" class="form-input" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Chrome Profile Directory</label>
+                            <input type="text" id="cfg-chrome-profile" class="form-input" value="Default" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Execution Check Interval (s)</label>
+                            <input type="number" id="cfg-check-interval" class="form-input" value="5" min="1" />
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+                        <button class="btn btn-primary" onclick="saveGlobalSettings()">
+                            <i class="fa-solid fa-floppy-disk"></i> Save System Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 1: ADD AUTHORIZED WEBSITE                                   -->
+    <!-- ================================================================= -->
+    <div id="modal-add-site" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="card-title"><i class="fa-solid fa-plus-circle" style="color: var(--accent-cyan);"></i> Add Authorized Website</div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-site')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary);">
+                    Add a target website that you own or are explicitly authorized to automate. The system will independently track its DOM, forms, credentials, and workflow execution.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Website Name / Identifier</label>
+                    <input type="text" id="new-site-name" class="form-input" placeholder="e.g. My Admin Portal, Dhan Brokerage" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Website URL</label>
+                    <input type="url" id="new-site-url" class="form-input" placeholder="https://example.com/login" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-add-site')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAddSite()"><i class="fa-solid fa-check"></i> Add Website</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 2: DOM SCAN & FORM DISCOVERY RESULTS                        -->
+    <!-- ================================================================= -->
+    <div id="modal-scan-result" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 820px;">
+            <div class="modal-header">
+                <div class="card-title">
+                    <i class="fa-solid fa-magnifying-glass" style="color: var(--accent-cyan);"></i>
+                    Dynamic Website Scan & Form Discovery Report
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-scan-result')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="scan-report-body">
+                <!-- Injected scan report details -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-scan-result')">Close</button>
+                <button class="btn btn-primary" id="btn-apply-scan-cfg" onclick="applyScanToConfig()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Open Site Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 3: SITE-SPECIFIC CONFIGURATION                              -->
+    <!-- ================================================================= -->
+    <div id="modal-site-cfg" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 760px;">
+            <div class="modal-header">
+                <div class="card-title">
+                    <i class="fa-solid fa-sliders" style="color: var(--accent-cyan);"></i>
+                    Site Configuration: <span id="cfg-modal-sitename" style="color: var(--accent-cyan);"></span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-site-cfg')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cfg-modal-siteid" />
+
+                <div style="font-weight: 700; color: var(--accent-cyan); font-size: 13px; text-transform: uppercase;">
+                    <i class="fa-solid fa-key"></i> Authentication & Form Selectors
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Username Field Selector</label>
+                        <input type="text" id="scfg-user-sel" class="form-input" placeholder="#username or input[name='user']" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Username / User ID Value</label>
+                        <input type="text" id="scfg-user-val" class="form-input" placeholder="user@example.com" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Password Field Selector</label>
+                        <input type="text" id="scfg-pass-sel" class="form-input" placeholder="input[type='password']" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password Value (Securely Stored)</label>
+                        <input type="password" id="scfg-pass-val" class="form-input" placeholder="••••••••" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Login Submit Button Selector</label>
+                    <input type="text" id="scfg-submit-sel" class="form-input" placeholder="button[type='submit'] or #login-btn" />
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-faint); margin: 6px 0;" />
+
+                <div style="font-weight: 700; color: var(--warning); font-size: 13px; text-transform: uppercase;">
+                    <i class="fa-solid fa-shield-halved"></i> Multi-Factor / OTP Configuration
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">OTP Required for Login?</label>
+                        <select id="scfg-otp-req" class="form-input">
+                            <option value="1">YES - Pause for Interactive OTP in GUI</option>
+                            <option value="0">NO - Direct Credential Login</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">OTP Input Field Selector</label>
+                        <input type="text" id="scfg-otp-sel" class="form-input" placeholder="input[name='otp'] or #otp" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">OTP Submit Button Selector</label>
+                    <input type="text" id="scfg-otp-btn-sel" class="form-input" placeholder="button:has-text('Verify') or #submit-otp" />
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-faint); margin: 6px 0;" />
+
+                <div style="font-weight: 700; color: var(--success); font-size: 13px; text-transform: uppercase;">
+                    <i class="fa-solid fa-check-double"></i> Session Verification & Logout Detection
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Expected Post-Login URL (Partial)</label>
+                        <input type="text" id="scfg-auth-url" class="form-input" placeholder="/dashboard or /home" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Authenticated Element Selector</label>
+                        <input type="text" id="scfg-auth-sel" class="form-input" placeholder="#user-profile, .dashboard-container" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Logout Element Selector (Detects presence / session loss)</label>
+                    <input type="text" id="scfg-logout-sel" class="form-input" placeholder="a:has-text('Logout') or #logout-btn" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Workflow Repeat Interval (seconds, 0 = one-time)</label>
+                        <input type="number" id="scfg-interval" class="form-input" value="10" min="0" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Retries</label>
+                        <input type="number" id="scfg-retries" class="form-input" value="3" min="1" max="10" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-site-cfg')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSiteConfig()"><i class="fa-solid fa-floppy-disk"></i> Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 4: INTERACTIVE OTP REQUIRED DIALOG                          -->
+    <!-- ================================================================= -->
+    <div id="modal-otp" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header" style="border-bottom-color: rgba(239, 68, 68, 0.3);">
+                <div class="card-title" style="color: var(--danger);">
+                    <i class="fa-solid fa-lock"></i> 🔐 OTP REQUIRED
+                </div>
+            </div>
+            <div class="modal-body otp-box">
+                <div class="otp-icon-large">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h3 id="otp-site-title" style="font-size: 18px; margin-bottom: 4px;">Website Authentication</h3>
+                    <p style="font-size: 12px; color: var(--text-secondary); max-width: 320px;">
+                        The automation workflow has paused. Please enter the verification OTP sent to your device to continue.
+                    </p>
+                </div>
+
+                <input type="hidden" id="otp-site-id" />
+                <input type="text" id="otp-input-field" class="otp-input-digits" maxlength="8" placeholder="------" autofocus />
+                <div style="font-size: 11px; color: var(--text-muted);">
+                    <i class="fa-solid fa-shield"></i> Never logged or transmitted outside local Chrome automation.
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-danger btn-primary" style="padding: 10px 28px; font-size: 14px;" onclick="submitOtpValue()">
+                    <i class="fa-solid fa-paper-plane"></i> SUBMIT OTP
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 5: EXECUTION HISTORY DIALOG                                 -->
+    <!-- ================================================================= -->
+    <div id="modal-history" class="modal-backdrop">
+        <div class="modal-card" style="max-width: 720px;">
+            <div class="modal-header">
+                <div class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-cyan);"></i> Execution History</div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-history')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Status</th>
+                                <th>Processed</th>
+                                <th>Errors</th>
+                                <th>Summary</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-history-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-history')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST ALERT -->
+    <div id="toast">
+        <i id="toast-icon" class="fa-solid fa-circle-info"></i>
+        <span id="toast-msg">Notification</span>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- JAVASCRIPT LOGIC & REACTIVE WEBSOCKET SYNC                        -->
+    <!-- ================================================================= -->
+    <script>
+        let currentSites = [];
+        let activeOtpSiteId = null;
+
+        // Establish WebSocket connection for real-time streaming
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/logs`;
+        let ws = null;
+
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                appendLog('INFO', 'Connected to real-time event pipeline.');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    if (payload.type === 'state') {
+                        updateGlobalStateUI(payload.data);
+                    } else if (payload.type === 'log') {
+                        appendLog(payload.data.level, payload.data.message);
+                    }
+                } catch (e) {
+                    console.error('WS parse error:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            connectWebSocket();
+            refreshStatus();
+            loadSites();
+            setInterval(pollSitesAndOtp, 4000);
+        });
+
+        // ---------------------------------------------------------------------
+        // Global State & UI Updates
+        // ---------------------------------------------------------------------
+        function updateGlobalStateUI(data) {
+            if (!data) return;
+
+            // Engine badge
+            const engineLbl = document.getElementById('lbl-engine-state');
+            const dotEngine = document.getElementById('dot-engine');
+            engineLbl.innerText = data.app_state || 'READY';
+            if (data.app_state === 'RUNNING') {
+                dotEngine.className = 'badge-dot dot-green';
+            } else if (data.app_state === 'PAUSED') {
+                dotEngine.className = 'badge-dot dot-amber';
+            } else if (data.app_state === 'ERROR') {
+                dotEngine.className = 'badge-dot dot-red';
+            } else {
+                dotEngine.className = 'badge-dot dot-blue';
+            }
+
+            // Chrome badge
+            const chromeLbl = document.getElementById('lbl-chrome-state');
+            const dotChrome = document.getElementById('dot-chrome');
+            chromeLbl.innerText = data.chrome_state || 'DISCONNECTED';
+            if (data.chrome_state === 'CONNECTED') {
+                dotChrome.className = 'badge-dot dot-green';
+            } else if (data.chrome_state === 'STARTING') {
+                dotChrome.className = 'badge-dot dot-blue';
+            } else if (data.chrome_state === 'ERROR') {
+                dotChrome.className = 'badge-dot dot-red';
+            } else {
+                dotChrome.className = 'badge-dot dot-gray';
+            }
+
+            // Telegram badge
+            const tgLbl = document.getElementById('lbl-telegram-state');
+            const dotTg = document.getElementById('dot-telegram');
+            tgLbl.innerText = data.telegram_state || 'STANDBY';
+            if (data.telegram_state === 'CONNECTED') {
+                dotTg.className = 'badge-dot dot-green';
+            } else if (data.telegram_state === 'ERROR') {
+                dotTg.className = 'badge-dot dot-red';
+            } else {
+                dotTg.className = 'badge-dot dot-gray';
+            }
+
+            // Metrics
+            document.getElementById('val-processed-count').innerText = data.records_processed || 0;
+            document.getElementById('val-errors-count').innerText = data.failed_dispatches || 0;
+
+            if (data.active_sites_count !== undefined) {
+                document.getElementById('val-sites-count').innerText = data.active_sites_count;
+            }
+            if (data.running_sites_count !== undefined) {
+                document.getElementById('val-running-count').innerText = data.running_sites_count;
+            }
+
+            // Check pending OTPs
+            if (data.pending_otp_sites) {
+                const otpSiteIds = Object.keys(data.pending_otp_sites);
+                document.getElementById('val-otp-pending').innerText = otpSiteIds.length;
+                if (otpSiteIds.length > 0 && (!activeOtpSiteId || !document.getElementById('modal-otp').style.display.includes('flex'))) {
+                    const firstId = otpSiteIds[0];
+                    showOtpModal(firstId, data.pending_otp_sites[firstId]);
+                }
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                updateGlobalStateUI(data);
+
+                // Populate settings fields
+                if (data.broker_name) document.getElementById('cfg-broker-name').value = data.broker_name;
+                if (data.broker_url) document.getElementById('cfg-broker-url').value = data.broker_url;
+                if (data.check_interval) document.getElementById('cfg-check-interval').value = data.check_interval;
+                if (data.chrome_profile_dir) document.getElementById('cfg-chrome-profile').value = data.chrome_profile_dir;
+                if (data.telegram_bot_token) document.getElementById('cfg-tg-token').value = data.telegram_bot_token;
+                if (data.telegram_chat_id) document.getElementById('cfg-tg-chat').value = data.telegram_chat_id;
+            } catch (e) {
+                console.error('Failed to load status:', e);
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Site Listing & Table Rendering
+        // ---------------------------------------------------------------------
+        async function loadSites() {
+            try {
+                const res = await fetch('/api/sites');
+                const json = await res.json();
+                currentSites = json.sites || [];
+                renderSitesTable();
+                document.getElementById('val-sites-count').innerText = currentSites.length;
+                const running = currentSites.filter(s => s.automation_status === 'RUNNING').length;
+                document.getElementById('val-running-count').innerText = running;
+            } catch (e) {
+                console.error('Failed to load sites:', e);
+            }
+        }
+
+        function renderSitesTable() {
+            const tbody = document.getElementById('tbl-sites-body');
+            tbody.innerHTML = '';
+
+            if (currentSites.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    No authorized target websites configured. Click <b>+ Add URL</b> to register your first target site.
+                </td></tr>`;
+                return;
+            }
+
+            currentSites.forEach(s => {
+                const tr = document.createElement('tr');
+
+                // Scan Pill
+                let scanPill = `<span class="tag-pill pill-ready">${s.scan_status}</span>`;
+                if (s.scan_status === 'SCANNED') scanPill = `<span class="tag-pill pill-ready" style="color: var(--accent-cyan);"><i class="fa-solid fa-check"></i> SCANNED</span>`;
+                else if (s.scan_status === 'SCANNING') scanPill = `<span class="tag-pill pill-running"><i class="fa-solid fa-spinner fa-spin"></i> SCANNING</span>`;
+                else if (s.scan_status === 'ERROR') scanPill = `<span class="tag-pill pill-error"><i class="fa-solid fa-xmark"></i> ERROR</span>`;
+
+                // Auth Pill
+                let authPill = `<span class="tag-pill pill-ready">${s.auth_status}</span>`;
+                if (s.auth_status === 'AUTHENTICATED') authPill = `<span class="tag-pill pill-ready" style="color: var(--success);"><i class="fa-solid fa-shield"></i> AUTHENTICATED</span>`;
+                else if (s.is_waiting_for_otp || s.auth_status === 'WAITING_FOR_OTP') {
+                    authPill = `<span class="tag-pill pill-otp" onclick="showOtpModal('${s.id}', '${escapeQuotes(s.name)}')"><i class="fa-solid fa-key"></i> OTP REQUIRED</span>`;
+                } else if (s.auth_status === 'EXPIRED') authPill = `<span class="tag-pill pill-error">EXPIRED</span>`;
+
+                // Auto Status Pill
+                let autoPill = `<span class="tag-pill pill-ready">${s.automation_status}</span>`;
+                if (s.automation_status === 'RUNNING') autoPill = `<span class="tag-pill pill-running"><i class="fa-solid fa-circle-play"></i> RUNNING</span>`;
+                else if (s.automation_status === 'PAUSED') autoPill = `<span class="tag-pill pill-paused"><i class="fa-solid fa-circle-pause"></i> PAUSED</span>`;
+                else if (s.automation_status === 'ERROR') autoPill = `<span class="tag-pill pill-error"><i class="fa-solid fa-triangle-exclamation"></i> ERROR</span>`;
+
+                // Action buttons based on state
+                let controlBtn = '';
+                if (s.automation_status === 'RUNNING') {
+                    controlBtn = `
+                        <button class="btn btn-warning btn-sm" onclick="pauseSite('${s.id}')" title="Pause"><i class="fa-solid fa-pause"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="stopSite('${s.id}')" title="Stop"><i class="fa-solid fa-stop"></i></button>
+                    `;
+                } else if (s.automation_status === 'PAUSED') {
+                    controlBtn = `
+                        <button class="btn btn-success btn-sm" onclick="resumeSite('${s.id}')" title="Resume"><i class="fa-solid fa-play"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="stopSite('${s.id}')" title="Stop"><i class="fa-solid fa-stop"></i></button>
+                    `;
+                } else {
+                    controlBtn = `
+                        <button class="btn btn-success btn-sm" onclick="startSite('${s.id}')" title="Start"><i class="fa-solid fa-play"></i></button>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="chk-site-item" value="${s.id}" /></td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(s.name)}</div>
+                        <a href="${escapeHtml(s.url)}" target="_blank" class="site-link">${escapeHtml(s.url)}</a>
+                    </td>
+                    <td>${scanPill}</td>
+                    <td>${authPill}</td>
+                    <td>${autoPill}</td>
+                    <td>
+                        <div style="font-size: 11px; color: var(--text-muted);">${s.last_execution_at || 'Never'}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${escapeHtml(s.last_result || '-')}</div>
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 4px;">
+                            <button class="btn btn-secondary btn-sm" onclick="scanSite('${s.id}')" title="Scan DOM"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <button class="btn btn-secondary btn-sm" onclick="openConfigModal('${s.id}')" title="Configure"><i class="fa-solid fa-gear"></i></button>
+                            ${controlBtn}
+                            <button class="btn btn-secondary btn-sm" onclick="showHistoryModal('${s.id}')" title="History"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteSite('${s.id}', '${escapeQuotes(s.name)}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function pollSitesAndOtp() {
+            loadSites();
+            try {
+                const res = await fetch('/api/otp/pending');
+                const json = await res.json();
+                if (json.pending_otps && json.pending_otps.length > 0) {
+                    const p = json.pending_otps[0];
+                    showOtpModal(p.site_id, p.name);
+                }
+            } catch (e) {}
+        }
+
+        // ---------------------------------------------------------------------
+        // Add Site
+        // ---------------------------------------------------------------------
+        function openAddSiteModal() {
+            document.getElementById('new-site-name').value = '';
+            document.getElementById('new-site-url').value = '';
+            openModal('modal-add-site');
+        }
+
+        async function submitAddSite() {
+            const name = document.getElementById('new-site-name').value.trim();
+            const url = document.getElementById('new-site-url').value.trim();
+            if (!name || !url) {
+                showToast('Please specify both Name and URL.', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/sites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    closeModal('modal-add-site');
+                    showToast(json.message, 'success');
+                    loadSites();
+                } else {
+                    showToast(json.detail || 'Failed to add site', 'error');
+                }
+            } catch (e) {
+                showToast('Error adding site: ' + e, 'error');
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Site Scanning & Discovery
+        // ---------------------------------------------------------------------
+        async function scanSite(siteId) {
+            showToast('Starting DOM scan for target website...', 'info');
+            loadSites();
+            try {
+                const res = await fetch(`/api/sites/${siteId}/scan`, { method: 'POST' });
+                const json = await res.json();
+                loadSites();
+                if (json.success) {
+                    showScanReport(siteId, json);
+                } else {
+                    showToast('Scan failed: ' + (json.error || 'Unknown error'), 'error');
+                }
+            } catch (e) {
+                showToast('Scan error: ' + e, 'error');
+            }
+        }
+
+        function showScanReport(siteId, data) {
+            const container = document.getElementById('scan-report-body');
+            const auth = data.auth_detection || {};
+
+            let formsHtml = '';
+            if (data.forms && data.forms.length > 0) {
+                formsHtml = data.forms.map((f, idx) => `
+                    <div style="background: var(--bg-input); padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 12px;">
+                        <div><b>Form #${idx+1}:</b> ID: <code>${f.id}</code> | Action: <code>${f.action || '(none)'}</code> | Method: <code>${f.method}</code></div>
+                        <div style="color: var(--text-muted); margin-top: 4px;">Selector: <code>${f.selector}</code> (${f.inputs_count} fields)</div>
+                    </div>
+                `).join('');
+            } else {
+                formsHtml = '<div style="color: var(--text-muted); font-size: 12px;">No standalone &lt;form&gt; containers detected. Single-Page Application (SPA) input structure found.</div>';
+            }
+
+            container.innerHTML = `
+                <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+                    <div><b>Page Title:</b> ${escapeHtml(data.title || '(No title)')}</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div style="background: rgba(47, 128, 237, 0.1); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent-cyan);">${(data.forms || []).length}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Forms Discovered</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--success);">${(data.inputs || []).length}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Input Fields</div>
+                    </div>
+                    <div style="background: rgba(155, 81, 224, 0.1); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent-purple);">${(data.buttons || []).length}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Buttons / Actions</div>
+                    </div>
+                </div>
+
+                <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--accent-cyan);"><i class="fa-solid fa-fingerprint"></i> Suggested Heuristic Selectors:</h4>
+                <div style="background: var(--bg-input); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+                    <div><b style="color: var(--text-muted);">Username Selector:</b> <span style="color: #A7F3D0;">${auth.suggested_username_selector || '(not detected)'}</span></div>
+                    <div><b style="color: var(--text-muted);">Password Selector:</b> <span style="color: #A7F3D0;">${auth.suggested_password_selector || '(not detected)'}</span></div>
+                    <div><b style="color: var(--text-muted);">Login Button:</b> <span style="color: #A7F3D0;">${auth.suggested_login_btn_selector || '(not detected)'}</span></div>
+                    <div><b style="color: var(--text-muted);">OTP Field:</b> <span style="color: #FDE68A;">${auth.suggested_otp_selector || '(not detected)'}</span></div>
+                    <div><b style="color: var(--text-muted);">Logout Action:</b> <span style="color: #FCA5A5;">${auth.suggested_logout_selector || '(not detected)'}</span></div>
+                </div>
+
+                <h4 style="font-size: 13px; margin-bottom: 8px;"><i class="fa-solid fa-rectangle-list"></i> Form Containers:</h4>
+                ${formsHtml}
+            `;
+
+            document.getElementById('btn-apply-scan-cfg').onclick = () => {
+                closeModal('modal-scan-result');
+                openConfigModal(siteId);
+            };
+
+            openModal('modal-scan-result');
+        }
+
+        // ---------------------------------------------------------------------
+        // Site Configuration
+        // ---------------------------------------------------------------------
+        async function openConfigModal(siteId) {
+            const site = currentSites.find(s => s.id === siteId);
+            document.getElementById('cfg-modal-siteid').value = siteId;
+            document.getElementById('cfg-modal-sitename').innerText = site ? site.name : siteId;
+
+            try {
+                const res = await fetch(`/api/sites/${siteId}/config`);
+                const cfg = await res.json();
+
+                document.getElementById('scfg-user-sel').value = cfg.username_selector || '';
+                document.getElementById('scfg-user-val').value = cfg.username_val || '';
+                document.getElementById('scfg-pass-sel').value = cfg.password_selector || '';
+                document.getElementById('scfg-pass-val').value = cfg.has_password ? '********' : '';
+                document.getElementById('scfg-submit-sel').value = cfg.submit_selector || '';
+
+                document.getElementById('scfg-otp-req').value = cfg.otp_required ? '1' : '0';
+                document.getElementById('scfg-otp-sel').value = cfg.otp_selector || '';
+                document.getElementById('scfg-otp-btn-sel').value = cfg.otp_submit_selector || '';
+
+                document.getElementById('scfg-auth-url').value = cfg.expected_auth_url || '';
+                document.getElementById('scfg-auth-sel').value = cfg.expected_auth_selector || '';
+                document.getElementById('scfg-logout-sel').value = cfg.logout_selector || '';
+
+                document.getElementById('scfg-interval').value = cfg.repeat_interval !== undefined ? cfg.repeat_interval : 10;
+                document.getElementById('scfg-retries').value = cfg.max_retries !== undefined ? cfg.max_retries : 3;
+
+                openModal('modal-site-cfg');
+            } catch (e) {
+                showToast('Failed to load configuration: ' + e, 'error');
+            }
+        }
+
+        async function saveSiteConfig() {
+            const siteId = document.getElementById('cfg-modal-siteid').value;
+            const payload = {
+                username_selector: document.getElementById('scfg-user-sel').value.trim(),
+                username_val: document.getElementById('scfg-user-val').value.trim(),
+                password_selector: document.getElementById('scfg-pass-sel').value.trim(),
+                password_val: document.getElementById('scfg-pass-val').value.trim(),
+                submit_selector: document.getElementById('scfg-submit-sel').value.trim(),
+                otp_required: document.getElementById('scfg-otp-req').value === '1',
+                otp_selector: document.getElementById('scfg-otp-sel').value.trim(),
+                otp_submit_selector: document.getElementById('scfg-otp-btn-sel').value.trim(),
+                expected_auth_url: document.getElementById('scfg-auth-url').value.trim(),
+                expected_auth_selector: document.getElementById('scfg-auth-sel').value.trim(),
+                logout_selector: document.getElementById('scfg-logout-sel').value.trim(),
+                repeat_interval: parseInt(document.getElementById('scfg-interval').value) || 10,
+                max_retries: parseInt(document.getElementById('scfg-retries').value) || 3
+            };
+
+            try {
+                const res = await fetch(`/api/sites/${siteId}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    closeModal('modal-site-cfg');
+                    showToast('Configuration saved successfully!', 'success');
+                    loadSites();
+                } else {
+                    showToast('Error saving configuration.', 'error');
+                }
+            } catch (e) {
+                showToast('Network error: ' + e, 'error');
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Workflow Controls (Start, Stop, Pause, Resume)
+        // ---------------------------------------------------------------------
+        async function startSite(siteId) {
+            try {
+                const res = await fetch(`/api/sites/${siteId}/start`, { method: 'POST' });
+                const json = await res.json();
+                if (res.ok) {
+                    showToast('Automation workflow started.', 'success');
+                    loadSites();
+                } else {
+                    showToast(json.detail || 'Failed to start', 'error');
+                }
+            } catch (e) {
+                showToast('Start error: ' + e, 'error');
+            }
+        }
+
+        async function stopSite(siteId) {
+            try {
+                const res = await fetch(`/api/sites/${siteId}/stop`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('Automation stopped cleanly.', 'info');
+                    loadSites();
+                }
+            } catch (e) {
+                showToast('Stop error: ' + e, 'error');
+            }
+        }
+
+        async function pauseSite(siteId) {
+            try {
+                const res = await fetch(`/api/sites/${siteId}/pause`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('Automation paused.', 'warning');
+                    loadSites();
+                }
+            } catch (e) {
+                showToast('Pause error: ' + e, 'error');
+            }
+        }
+
+        async function resumeSite(siteId) {
+            try {
+                const res = await fetch(`/api/sites/${siteId}/resume`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('Automation resumed.', 'success');
+                    loadSites();
+                }
+            } catch (e) {
+                showToast('Resume error: ' + e, 'error');
+            }
+        }
+
+        async function deleteSite(siteId, name) {
+            if (!confirm(`Are you sure you want to remove '${name}' from automation?`)) return;
+            try {
+                const res = await fetch(`/api/sites/${siteId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Site removed.', 'info');
+                    loadSites();
+                }
+            } catch (e) {
+                showToast('Delete error: ' + e, 'error');
+            }
+        }
+
+        // Batch Actions
+        async function batchAction(action) {
+            const checked = Array.from(document.querySelectorAll('.chk-site-item:checked')).map(c => c.value);
+            if (checked.length === 0) {
+                showToast('Please select at least one site using the checkboxes.', 'warning');
+                return;
+            }
+
+            try {
+                showToast(`Executing batch ${action}...`, 'info');
+                const res = await fetch('/api/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action, site_ids: checked })
+                });
+                const json = await res.json();
+                showToast(`Batch ${action} completed for ${checked.length} sites.`, 'success');
+                loadSites();
+            } catch (e) {
+                showToast('Batch error: ' + e, 'error');
+            }
+        }
+
+        async function startAllSites() {
+            try {
+                const res = await fetch('/api/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'start' })
+                });
+                showToast('Starting all enabled automation workflows...', 'info');
+                loadSites();
+            } catch (e) {}
+        }
+
+        async function stopAllSites() {
+            try {
+                const res = await fetch('/api/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'stop' })
+                });
+                showToast('Stopping all automation workflows...', 'info');
+                loadSites();
+            } catch (e) {}
+        }
+
+        function toggleSelectAll(masterCheckbox) {
+            const items = document.querySelectorAll('.chk-site-item');
+            items.forEach(chk => chk.checked = masterCheckbox.checked);
+        }
+
+        // ---------------------------------------------------------------------
+        // Interactive OTP Dialog & Submission
+        // ---------------------------------------------------------------------
+        function showOtpModal(siteId, siteName) {
+            activeOtpSiteId = siteId;
+            document.getElementById('otp-site-id').value = siteId;
+            document.getElementById('otp-site-title').innerText = siteName || 'Target Website';
+            document.getElementById('otp-input-field').value = '';
+            openModal('modal-otp');
+            setTimeout(() => document.getElementById('otp-input-field').focus(), 150);
+        }
+
+        async function submitOtpValue() {
+            const siteId = document.getElementById('otp-site-id').value;
+            const otp = document.getElementById('otp-input-field').value.trim();
+            if (!otp) {
+                showToast('Please enter the OTP.', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/sites/${siteId}/submit-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp: otp })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    closeModal('modal-otp');
+                    showToast('OTP submitted! Resuming automation...', 'success');
+                    activeOtpSiteId = null;
+                    loadSites();
+                } else {
+                    showToast(json.detail || 'Failed to submit OTP', 'error');
+                }
+            } catch (e) {
+                showToast('OTP submission error: ' + e, 'error');
+            }
+        }
+
+        // Allow pressing Enter in OTP input field
+        document.getElementById('otp-input-field').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitOtpValue();
+        });
+
+        // ---------------------------------------------------------------------
+        // Execution History Modal
+        // ---------------------------------------------------------------------
+        async function showHistoryModal(siteId) {
+            try {
+                const res = await fetch(`/api/sites/${siteId}/history`);
+                const json = await res.json();
+                const tbody = document.getElementById('tbl-history-body');
+                tbody.innerHTML = '';
+
+                if (!json.history || json.history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">No execution history recorded yet.</td></tr>';
+                } else {
+                    json.history.forEach(h => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="font-size: 11px; color: var(--text-muted);">${h.started_at}</td>
+                                <td><span class="tag-pill ${h.status === 'SUCCESS' ? 'pill-running' : 'pill-error'}">${h.status}</span></td>
+                                <td>${h.records_processed}</td>
+                                <td>${h.errors_count}</td>
+                                <td style="font-size: 12px;">${escapeHtml(h.summary || '-')}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                openModal('modal-history');
+            } catch (e) {
+                showToast('Failed to load history: ' + e, 'error');
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Global Settings & Telegram Test
+        // ---------------------------------------------------------------------
+        async function testTelegram() {
+            showToast('Testing Telegram operational connection...', 'info');
+            try {
+                const res = await fetch('/api/test-telegram', { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast('Telegram connection successful!', 'success');
+                } else {
+                    showToast('Telegram error: ' + json.message, 'error');
+                }
+            } catch (e) {
+                showToast('Network error: ' + e, 'error');
+            }
+        }
+
+        async function saveGlobalSettings() {
+            const payload = {
+                broker_name: document.getElementById('cfg-broker-name').value.trim(),
+                broker_url: document.getElementById('cfg-broker-url').value.trim(),
+                check_interval: parseInt(document.getElementById('cfg-check-interval').value) || 5,
+                chrome_profile_dir: document.getElementById('cfg-chrome-profile').value.trim(),
+                telegram_bot_token: document.getElementById('cfg-tg-token').value.trim(),
+                telegram_chat_id: document.getElementById('cfg-tg-chat').value.trim()
+            };
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showToast('Global settings saved to .env!', 'success');
+                    refreshStatus();
+                } else {
+                    showToast('Failed to update settings.', 'error');
+                }
+            } catch (e) {
+                showToast('Settings error: ' + e, 'error');
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Terminal Logging & Helpers
+        // ---------------------------------------------------------------------
+        function appendLog(level, message) {
+            const box = document.getElementById('terminal-stream');
+            const row = document.createElement('div');
+            row.className = 'log-entry';
+
+            const now = new Date().toTimeString().split(' ')[0];
+            row.innerHTML = `
+                <span class="log-time">[${now}]</span>
+                <span class="log-lvl log-lvl-${level}">${level}</span>
+                <span class="log-msg">${escapeHtml(message)}</span>
+            `;
+
+            box.appendChild(row);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-stream').innerHTML = '';
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+
+            text.innerText = msg;
+            if (type === 'success') {
+                toast.style.borderColor = 'var(--success)';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--success)';
+            } else if (type === 'error') {
+                toast.style.borderColor = 'var(--danger)';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+                icon.style.color = 'var(--danger)';
+            } else if (type === 'warning') {
+                toast.style.borderColor = 'var(--warning)';
+                icon.className = 'fa-solid fa-bell';
+                icon.style.color = 'var(--warning)';
+            } else {
+                toast.style.borderColor = 'var(--accent-cyan)';
+                icon.className = 'fa-solid fa-circle-info';
+                icon.style.color = 'var(--accent-cyan)';
+            }
+
+            toast.style.display = 'flex';
+            setTimeout(() => toast.style.display = 'none', 4000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        async function openChromeBrowser() {
+            showToast('Launching Chrome browser...', 'info');
+            try {
+                const res = await fetch('/api/browser/open', { method: 'POST' });
+                const json = await res.json();
+                if (res.ok) {
+                    showToast('Chrome browser opened and active!', 'success');
+                } else {
+                    showToast('Error opening Chrome: ' + (json.detail || 'Unknown error'), 'error');
+                }
+            } catch (e) {
+                showToast('Failed to open Chrome: ' + e, 'error');
+            }
+        }
+
+        function escapeQuotes(text) {
+            if (!text) return '';
+            return String(text).replace(/'/g, "\\'");
+        }
+    </script>
+</body>
+</html>
